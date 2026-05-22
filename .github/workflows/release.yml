@@ -1,0 +1,61 @@
+name: Release Windows EXE
+
+on:
+  push:
+    tags:
+      - 'v*' # This workflow only runs when you push a tag like v1.0.0
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    # MUST grant write permissions so the Action can upload the .exe to the Releases tab
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      # 👇 NEW: The Sidecar Build Pipeline using PowerShell
+      - name: Build and Package Node.js Sidecar
+        run: |
+          # 1. Enter the sidecar folder and install its specific dependencies
+          cd sidecar
+          npm install
+          
+          # 2. Package it using caxa
+          npx caxa --input . --output "server-win.exe" -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server.js"
+          
+          # 3. Create the bin directory inside src-tauri (if it doesn't exist)
+          New-Item -ItemType Directory -Force -Path "../src-tauri/bin"
+          
+          # 4. Move and rename the executable to match Tauri's strict architecture naming convention
+          Move-Item -Path "server-win.exe" -Destination "../src-tauri/bin/server-x86_64-pc-windows-msvc.exe" -Force
+          
+          # 5. Return to root folder
+          cd ..
+
+      # Finally, build the React + Tauri app, bundling the newly created sidecar into the final installer
+      - name: Build Tauri App and Create Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'K&B Music ${{ github.ref_name }}'
+          releaseBody: 'See the assets to download and install this version.'
+          releaseDraft: true
+          prerelease: false
