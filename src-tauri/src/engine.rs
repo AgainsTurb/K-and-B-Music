@@ -1,5 +1,5 @@
 // src-tauri/src/engine.rs
-use tauri::{AppHandle, State, Manager};
+use tauri::{AppHandle, Manager};
 use std::sync::Mutex;
 use std::path::{Path, PathBuf};
 use std::fs::File;
@@ -113,7 +113,7 @@ fn launch_and_get_cookies(profile_dir: &PathBuf, exe_path: &PathBuf, is_visible:
     Ok(all_cookies)
 }
 
-// 👇 CHANGED: Removed `async`. This runs safely on a blocking thread pool now!
+// Removed `async`. This runs safely on a blocking thread pool now!
 #[tauri::command]
 pub async fn engine_status(app: AppHandle) -> Result<serde_json::Value, String> {
     let state = app.state::<EngineState>();
@@ -279,7 +279,7 @@ pub async fn engine_install(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-// 👇 CHANGED: Removed `async`. Safe execution on Tauri's blocking threads!
+// Removed `async`. Safe execution on Tauri's blocking threads!
 #[tauri::command]
 pub async fn engine_login(app: AppHandle) -> Result<(), String> {
     let state = app.state::<EngineState>();
