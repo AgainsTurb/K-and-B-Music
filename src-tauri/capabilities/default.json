@@ -1,0 +1,57 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main",
+    "lyrics_window"
+  ],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://*.bilibili.com/**"
+        },
+        {
+          "url": "https://**bilivideo.cn:**/**"
+        },
+        {
+          "url": "https://**bilivideo.com:**/**"
+        },
+        {
+          "url": "http://**bilivideo.cn:**/**"
+        },
+        {
+          "url": "http://**bilivideo.com:**/**"
+        },
+        {
+          "url": "http://*.kugou.com/**"
+        },
+        {
+          "url": "https://**:*/**"
+        },
+        {
+          "url": "https://**"
+        }
+      ]
+    },
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "core:window:allow-set-size",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-set-resizable",
+    "core:window:allow-create",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
+    "core:window:allow-start-dragging",
+    "core:webview:allow-create-webview-window",
+    "core:webview:allow-webview-close",
+    "core:event:allow-listen",
+    "core:event:allow-emit"
+  ]
+}

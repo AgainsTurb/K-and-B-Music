@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* V4 MAGIC: Force class-based dark mode */
+@variant dark (&:where(.dark, .dark *));
+
+/* Smooth transitions and base colors */
+body {
+    @apply transition-colors duration-300 bg-white text-gray-800 dark:bg-gray-900 dark:text-gray-100;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
