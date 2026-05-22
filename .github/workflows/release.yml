@@ -29,25 +29,7 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm install
 
-      - name: Build and Package Node.js Sidecar
-        run: |
-          # 1. Enter the sidecar folder and install its specific dependencies
-          cd sidecar
-          npm install
-          
-          # 2. Package it using caxa
-          npx caxa --input . --output "server-win.exe" -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server.js"
-          
-          # 3. Create the bin directory inside src-tauri (if it doesn't exist)
-          New-Item -ItemType Directory -Force -Path "../src-tauri/bin"
-          
-          # 4. Move and rename the executable to match Tauri's strict architecture naming convention
-          Move-Item -Path "server-win.exe" -Destination "../src-tauri/bin/server-x86_64-pc-windows-msvc.exe" -Force
-          
-          # 5. Return to root folder
-          cd ..
-
-      # Finally, build the React + Tauri app, bundling the newly created sidecar into the final installer
+      # Build the React + Tauri app (Rust compiles everything for us now!)
       - name: Build Tauri App and Create Release
         uses: tauri-apps/tauri-action@v0
         env:
