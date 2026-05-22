@@ -1,8 +1,12 @@
 use tauri::{AppHandle, Manager, Window, Emitter};
-use tauri_plugin_shell::ShellExt;
+// Note: Removed tauri_plugin_shell::ShellExt since we no longer spawn a sidecar
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::io::Write;
+// Note: std::io::Write is no longer needed for the TCP shutdown
+
+mod engine; 
+use engine::{engine_status, engine_install, engine_login, EngineState};
+use std::sync::Mutex;
 
 #[cfg(windows)]
 use windows::{
@@ -143,7 +147,27 @@ pub fn run() {
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, update_taskbar])
+        
+        // 1. Manage our native Engine State
+        .manage(EngineState {
+            is_downloading: Mutex::new(false),
+            download_progress: Mutex::new(0),
+            download_status: Mutex::new("idle".to_string()), 
+            download_error: Mutex::new("".to_string()),      
+            is_browser_busy: Mutex::new(false),
+            has_checked_background: Mutex::new(false),
+            cached_cookies: Mutex::new(None),             
+        })
+        
+        // 2. Register all commands exactly once
+        .invoke_handler(tauri::generate_handler![
+            greet, 
+            update_taskbar,
+            engine_status,
+            engine_install,
+            engine_login
+        ])
+        
         .setup(|app| {
             APP_HANDLE.set(app.handle().clone()).unwrap();
 
@@ -152,12 +176,10 @@ pub fn run() {
                 if let Some(window) = app.get_webview_window("main") {
                     let hwnd = HWND(window.hwnd().unwrap().0 as _);
                     
-                    // FIXED: Ignored the unused return value and scoped `unsafe` properly
                     unsafe {
                         let _ = SetWindowSubclass(hwnd, Some(taskbar_subclass_proc), 0, 0);
                     }
                     
-                    // FIXED: Removed the outer unsafe block so the inner one is valid
                     std::thread::spawn(move || {
                         std::thread::sleep(std::time::Duration::from_millis(150));
                         unsafe {
@@ -166,33 +188,14 @@ pub fn run() {
                     });
                 }
             }
-
-            let app_data_dir = app.path().app_local_data_dir().expect("Failed to get local dir");
-            let profile_dir = app_data_dir.join("cloak_profile");
-
-            let sidecar_command = app.shell().sidecar("server").unwrap().arg(profile_dir.to_str().unwrap());
-            let (mut receiver, _child) = sidecar_command.spawn().unwrap();
-
-            tauri::async_runtime::spawn(async move {
-                while let Some(event) = receiver.recv().await {
-                    match event {
-                        tauri_plugin_shell::process::CommandEvent::Stdout(line) => println!("SIDECAR LOG: {}", String::from_utf8_lossy(&line)),
-                        tauri_plugin_shell::process::CommandEvent::Stderr(line) => eprintln!("SIDECAR ERROR: {}", String::from_utf8_lossy(&line)),
-                        _ => {}
-                    }
-                }
-            });
+            
+            // Sidecar spawning code has been entirely deleted!
 
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| match event {
-            tauri::RunEvent::Exit => {
-                if let Ok(mut stream) = std::net::TcpStream::connect("127.0.0.1:9191") {
-                    let _ = stream.write_all(b"POST /api/shutdown HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
-                }
-            }
-            _ => {}
-        });
+        
+        // TCP Shutdown hook has been entirely deleted!
+        .run(|_app_handle, _event| {});
 }
