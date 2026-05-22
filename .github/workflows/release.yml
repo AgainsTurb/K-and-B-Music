@@ -29,7 +29,6 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm install
 
-      # 👇 NEW: The Sidecar Build Pipeline using PowerShell
       - name: Build and Package Node.js Sidecar
         run: |
           # 1. Enter the sidecar folder and install its specific dependencies
@@ -57,5 +56,5 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'K&B Music ${{ github.ref_name }}'
           releaseBody: 'See the assets to download and install this version.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
