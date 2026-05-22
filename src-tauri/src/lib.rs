@@ -3,10 +3,6 @@ use tauri_plugin_shell::ShellExt;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::io::Write;
-use std::sync::Mutex;
-use tauri_plugin_shell::process::CommandChild;
-
-struct SidecarState(Mutex<Option<CommandChild>>);
 
 #[cfg(windows)]
 use windows::{
@@ -51,7 +47,6 @@ unsafe extern "system" fn taskbar_subclass_proc(
                     101 => { app.emit("taskbar-prev", ()).ok(); }
                     102 => { 
                         // THE FIX: The middle slot ID is now permanently 102.
-                        // We check our atomic variable to emit the correct playback toggle event to React!
                         if IS_PLAYING_STATE.load(Ordering::Relaxed) {
                             app.emit("taskbar-pause", ()).ok();
                         } else {
@@ -109,8 +104,6 @@ unsafe fn render_native_buttons(hwnd: HWND, is_playing: bool) {
         let hicon_pause = LoadImageW(None, PCWSTR(pause_wide.as_ptr()), IMAGE_ICON, 16, 16, LR_LOADFROMFILE).unwrap_or_default();
         let hicon_next = LoadImageW(None, PCWSTR(next_wide.as_ptr()), IMAGE_ICON, 16, 16, LR_LOADFROMFILE).unwrap_or_default();
 
-        // THE FIX: The middle button identifier stays strictly constant as 102.
-        // Only the transmuted hIcon assets and context tooltips swap places.
         let buttons = vec![
             THUMBBUTTON { dwMask: THB_ICON | THB_TOOLTIP, iId: 101, iBitmap: 0, hIcon: std::mem::transmute(hicon_prev), szTip: encode_wide_fixed("Previous"), dwFlags: THBF_ENABLED },
             THUMBBUTTON { dwMask: THB_ICON | THB_TOOLTIP, iId: 102, iBitmap: 0, hIcon: std::mem::transmute(if is_playing { hicon_pause } else { hicon_play }), szTip: encode_wide_fixed(if is_playing { "Pause" } else { "Play" }), dwFlags: THBF_ENABLED },
@@ -132,7 +125,6 @@ fn update_taskbar(window: Window, payload: TaskbarPayload) {
     #[cfg(windows)]
     unsafe {
         if let Ok(hwnd_ptr) = window.hwnd() {
-            // Keep our global playback cache synced so clicks execute accurately
             IS_PLAYING_STATE.store(payload.is_playing, Ordering::Relaxed);
             render_native_buttons(HWND(hwnd_ptr.0 as _), payload.is_playing);
         }
@@ -159,16 +151,19 @@ pub fn run() {
             {
                 if let Some(window) = app.get_webview_window("main") {
                     let hwnd = HWND(window.hwnd().unwrap().0 as _);
+                    
+                    // FIXED: Ignored the unused return value and scoped `unsafe` properly
                     unsafe {
-                        SetWindowSubclass(hwnd, Some(taskbar_subclass_proc), 0, 0);
-                        
-                        std::thread::spawn(move || {
-                            std::thread::sleep(std::time::Duration::from_millis(150));
-                            unsafe {
-                                render_native_buttons(hwnd, false);
-                            }
-                        });
+                        let _ = SetWindowSubclass(hwnd, Some(taskbar_subclass_proc), 0, 0);
                     }
+                    
+                    // FIXED: Removed the outer unsafe block so the inner one is valid
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(150));
+                        unsafe {
+                            render_native_buttons(hwnd, false);
+                        }
+                    });
                 }
             }
 
