@@ -15,7 +15,7 @@ interface FavoritesPageProps {
   onReorder: (newFavorites: VideoTrack[]) => void;
   onRemove: (bvid: string) => void;
   userPlaylists: UserPlaylist[];
-  onAddToPlaylist: (playlistId: number, track: VideoTrack) => void;
+  onAddToPlaylist: (playlistId: string, track: VideoTrack) => void;
 }
 
 function SortableFavoriteItem({ item, index, currentBvid, onPlayTrack, onRemove, onOpenPlaylistModal }: any) {

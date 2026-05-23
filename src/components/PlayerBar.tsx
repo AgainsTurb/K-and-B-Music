@@ -29,7 +29,7 @@ interface PlayerBarProps {
   isFavorite: boolean;
   onToggleFavorite: (track?: VideoTrack) => void;
   userPlaylists: UserPlaylist[];
-  onAddToPlaylist: (playlistId: number, track: VideoTrack) => void;
+  onAddToPlaylist: (playlistId: string, track: VideoTrack) => void;
   isMiniMode: boolean;
   onToggleMiniMode: () => void;
 }

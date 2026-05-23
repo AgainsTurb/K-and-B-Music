@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   activeView: string;
-  activePlaylistId: number | null;
-  onNavigate: (view: string, playlistId?: number) => void;
+  activePlaylistId: string | null;
+  onNavigate: (view: string, playlistId?: string) => void;
   playlists: UserPlaylist[];
   onCreatePlaylist: () => void;
 }

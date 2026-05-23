@@ -9,7 +9,7 @@ interface RecentPageProps {
   favorites: VideoTrack[];
   onToggleFavorite: (track: VideoTrack) => void;
   userPlaylists: UserPlaylist[];
-  onAddToPlaylist: (playlistId: number, track: VideoTrack) => void;
+  onAddToPlaylist: (playlistId: string, track: VideoTrack) => void;
 }
 
 export default function RecentPage({ onPlayTrack, favorites, onToggleFavorite, userPlaylists, onAddToPlaylist }: RecentPageProps) {

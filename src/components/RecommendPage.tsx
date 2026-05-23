@@ -11,7 +11,7 @@ interface RecommendPageProps {
   favorites: VideoTrack[];
   onToggleFavorite: (track: VideoTrack) => void;
   userPlaylists: UserPlaylist[];
-  onAddToPlaylist: (playlistId: number, track: VideoTrack) => void;
+  onAddToPlaylist: (playlistId: string, track: VideoTrack) => void;
 }
 
 export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite, userPlaylists, onAddToPlaylist }: RecommendPageProps) {

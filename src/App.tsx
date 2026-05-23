@@ -83,7 +83,7 @@ export default function App() {
   // Navigation State
   const [activeView, setActiveView] = useState('Recommend');
   const [previousView, setPreviousView] = useState('Recommend');
-  const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
+  const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
 
   // Search States
   const [currentKeyword, setCurrentKeyword] = useState('');
@@ -249,7 +249,7 @@ export default function App() {
     setFavorites(await getFavorites());
   };
 
-  const handleAddToUserPlaylist = async (playlistId: number, track: VideoTrack) => {
+  const handleAddToUserPlaylist = async (playlistId: string, track: VideoTrack) => {
     await addTrackToUserPlaylist(playlistId, track);
     loadUserPlaylists(); // Refresh covers
   };

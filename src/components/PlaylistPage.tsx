@@ -8,7 +8,7 @@ import { UserPlaylist, renameUserPlaylist, deleteUserPlaylist, getPlaylistTracks
 import { useTranslation } from 'react-i18next';
 
 interface PlaylistPageProps {
-  playlistId: number;
+  playlistId: string;
   playlists: UserPlaylist[];
   currentBvid: string | null;
   onPlayTrack: (track: VideoTrack) => void;
@@ -16,7 +16,7 @@ interface PlaylistPageProps {
   onRefreshPlaylists: () => void;
   onDeleteComplete: () => void;
   userPlaylists: UserPlaylist[];
-  onAddToPlaylist: (playlistId: number, track: VideoTrack) => void;
+  onAddToPlaylist: (playlistId: string, track: VideoTrack) => void;
   favorites: VideoTrack[];
   onToggleFavorite: (track: VideoTrack) => void;
 }
