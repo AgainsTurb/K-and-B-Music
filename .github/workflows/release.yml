@@ -1,4 +1,4 @@
-name: Release Windows EXE
+name: Release Application
 
 on:
   push:
@@ -6,10 +6,15 @@ on:
       - 'v*' # This workflow only runs when you push a tag like v1.0.0
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build-and-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        # 👇 MINIMUM MODIFICATION: Run the pipeline on both Windows and macOS parallel environments
+        platform: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
 
-    # MUST grant write permissions so the Action can upload the .exe to the Releases tab
+    # MUST grant write permissions so the Action can upload assets to the Releases tab
     permissions:
       contents: write
 
@@ -29,7 +34,7 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm install
 
-      # Build the React + Tauri app (Rust compiles everything for us now!)
+      # Build the React + Tauri app (Automatically detects the OS and builds EXE/MSI for Windows or DMG/APP for Mac)
       - name: Build Tauri App and Create Release
         uses: tauri-apps/tauri-action@v0
         env:
