@@ -1,6 +1,8 @@
+#[allow(unused_imports)]
 use tauri::{AppHandle, Manager, Window, Emitter};
 // Note: Removed tauri_plugin_shell::ShellExt since we no longer spawn a sidecar
 use std::sync::OnceLock;
+#[allow(unused_imports)]
 use std::sync::atomic::{AtomicBool, Ordering};
 // Note: std::io::Write is no longer needed for the TCP shutdown
 
@@ -22,10 +24,14 @@ use windows::{
 
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
-// Cleaned up static globals using native const atomic declarations
+// Isolated Windows statics from macOS compiler context
+#[cfg(windows)]
 static BUTTONS_ADDED: AtomicBool = AtomicBool::new(false);
+#[cfg(windows)]
 static IS_PLAYING_STATE: AtomicBool = AtomicBool::new(false);
 
+// Allowed inactive structure definitions on non-windows compilation pipelines
+#[allow(dead_code)]
 #[derive(serde::Deserialize)]
 struct TaskbarPayload {
     #[serde(rename = "isPlaying")]
@@ -124,7 +130,9 @@ unsafe fn render_native_buttons(hwnd: HWND, is_playing: bool) {
     }
 }
 
+// 👇 FIXED: Allowed unused arguments when compiling on non-windows runner platforms
 #[tauri::command]
+#[allow(unused_variables)]
 fn update_taskbar(window: Window, payload: TaskbarPayload) {
     #[cfg(windows)]
     unsafe {
