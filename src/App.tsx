@@ -109,7 +109,7 @@ export default function App() {
     const appWindow = getCurrentWindow();
     if (!isMiniMode) {
       // Transitioning to Mini Mode
-      await appWindow.setSize(new LogicalSize(300, 260));
+      await appWindow.setSize(new LogicalSize(300, 300));
       await appWindow.setAlwaysOnTop(true);
       await appWindow.setResizable(false);
       setIsMiniMode(true);

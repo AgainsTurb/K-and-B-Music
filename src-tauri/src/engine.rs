@@ -18,10 +18,16 @@ pub struct EngineState {
     pub cached_cookies: Mutex<Option<Vec<Cookie>>>,
 }
 
+// 👇 MODIFIED: OS and Architecture specific URLs
 #[cfg(target_os = "windows")]
 const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v146.0.7680.177.4/cloakbrowser-windows-x64.zip";
-#[cfg(target_os = "macos")]
-const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v146.0.7680.177.4/cloakbrowser-linux-arm64.tar.gz"; 
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v145.0.7632.109.2/cloakbrowser-darwin-arm64.tar.gz"; 
+
+#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v145.0.7632.109.2/cloakbrowser-darwin-x64.tar.gz";
+
 #[cfg(target_os = "linux")]
 const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v146.0.7680.177.4/cloakbrowser-linux-x64.tar.gz";
 
@@ -67,7 +73,6 @@ fn launch_and_get_cookies(profile_dir: &PathBuf, exe_path: &PathBuf, is_visible:
     if is_visible {
         let _ = tab.navigate_to("https://passport.bilibili.com/login");
         
-        // Loop until user logs in
         loop {
             std::thread::sleep(std::time::Duration::from_secs(2));
             if let Ok(cookies) = tab.get_cookies() {
@@ -88,7 +93,6 @@ fn launch_and_get_cookies(profile_dir: &PathBuf, exe_path: &PathBuf, is_visible:
             }
         }
 
-        // Quickly grab Chosic before closing
         let _ = tab.navigate_to("https://www.chosic.com/music-genre-finder");
         std::thread::sleep(std::time::Duration::from_secs(2));
         if let Ok(cookies) = tab.get_cookies() {
@@ -96,7 +100,6 @@ fn launch_and_get_cookies(profile_dir: &PathBuf, exe_path: &PathBuf, is_visible:
         }
 
     } else {
-        // HEADLESS MODE
         let _ = tab.navigate_to("https://www.bilibili.com");
         std::thread::sleep(std::time::Duration::from_secs(3));
         if let Ok(cookies) = tab.get_cookies() {
@@ -113,7 +116,6 @@ fn launch_and_get_cookies(profile_dir: &PathBuf, exe_path: &PathBuf, is_visible:
     Ok(all_cookies)
 }
 
-// Removed `async`. This runs safely on a blocking thread pool now!
 #[tauri::command]
 pub async fn engine_status(app: AppHandle) -> Result<serde_json::Value, String> {
     let state = app.state::<EngineState>();
@@ -154,12 +156,10 @@ pub async fn engine_status(app: AppHandle) -> Result<serde_json::Value, String> 
     if should_check {
         *state.is_browser_busy.lock().unwrap() = true;
         
-        // Clone variables to move into the detached thread
         let app_clone = app.clone();
         let profile_clone = profile_dir.clone();
         let exe_clone = exe_path.unwrap().clone();
 
-        // 🚀 THE FIX: Detach the heavy browser launch completely from Tauri's IPC!
         std::thread::spawn(move || {
             let res = launch_and_get_cookies(&profile_clone, &exe_clone, false);
             let bg_state = app_clone.state::<EngineState>();
@@ -167,11 +167,9 @@ pub async fn engine_status(app: AppHandle) -> Result<serde_json::Value, String> 
             if let Ok(cookies) = res {
                 *bg_state.cached_cookies.lock().unwrap() = Some(cookies);
             }
-            // Safely release the lock when finished
             *bg_state.is_browser_busy.lock().unwrap() = false;
         });
         
-        // Return instantly to React so the UI doesn't freeze
         return Ok(serde_json::json!({
             "isReady": true,
             "isBiliLoggedIn": false,
@@ -212,7 +210,6 @@ pub async fn engine_status(app: AppHandle) -> Result<serde_json::Value, String> 
     }))
 }
 
-// Note: engine_install STAYS async because it uses `tokio::spawn` and `reqwest` internally.
 #[tauri::command]
 pub async fn engine_install(app: AppHandle) -> Result<(), String> {
     let state = app.state::<EngineState>();
@@ -231,14 +228,17 @@ pub async fn engine_install(app: AppHandle) -> Result<(), String> {
         let state = app_clone.state::<EngineState>();
         let profile_dir = app_clone.path().app_local_data_dir().unwrap().join("cloak_profile");
         let bin_dir = profile_dir.join("browser_bin");
-        let zip_path = profile_dir.join("browser.zip");
+
+        // 👇 MODIFIED: Dynamic archive naming based on OS
+        let archive_name = if cfg!(target_os = "windows") { "browser.zip" } else { "browser.tar.gz" };
+        let archive_path = profile_dir.join(archive_name);
 
         std::fs::create_dir_all(&bin_dir).unwrap_or_default();
 
         match reqwest::get(DOWNLOAD_URL).await {
             Ok(res) => {
                 let total_size = res.content_length().unwrap_or(0);
-                let mut file = File::create(&zip_path).unwrap();
+                let mut file = File::create(&archive_path).unwrap();
                 let mut downloaded: u64 = 0;
                 let mut stream = res.bytes_stream();
 
@@ -255,16 +255,32 @@ pub async fn engine_install(app: AppHandle) -> Result<(), String> {
 
                 *state.download_status.lock().unwrap() = "extracting".to_string();
                 
-                if let Ok(file) = File::open(&zip_path) {
+                // 👇 MODIFIED: Conditional extraction depending on OS
+                #[cfg(target_os = "windows")]
+                if let Ok(file) = File::open(&archive_path) {
                     if let Ok(mut archive) = zip::ZipArchive::new(file) {
                         if archive.extract(&bin_dir).is_ok() {
                             *state.download_status.lock().unwrap() = "ready".to_string();
                             *state.download_progress.lock().unwrap() = 100;
-                            let _ = std::fs::remove_file(&zip_path); 
+                            let _ = std::fs::remove_file(&archive_path); 
                         } else {
                             *state.download_status.lock().unwrap() = "error".to_string();
                             *state.download_error.lock().unwrap() = "Failed to extract ZIP".to_string();
                         }
+                    }
+                }
+
+                #[cfg(not(target_os = "windows"))]
+                if let Ok(file) = File::open(&archive_path) {
+                    let tar = flate2::read::GzDecoder::new(file);
+                    let mut archive = tar::Archive::new(tar);
+                    if archive.unpack(&bin_dir).is_ok() {
+                        *state.download_status.lock().unwrap() = "ready".to_string();
+                        *state.download_progress.lock().unwrap() = 100;
+                        let _ = std::fs::remove_file(&archive_path); 
+                    } else {
+                        *state.download_status.lock().unwrap() = "error".to_string();
+                        *state.download_error.lock().unwrap() = "Failed to extract TAR.GZ".to_string();
                     }
                 }
             },
@@ -279,7 +295,6 @@ pub async fn engine_install(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-// Removed `async`. Safe execution on Tauri's blocking threads!
 #[tauri::command]
 pub async fn engine_login(app: AppHandle) -> Result<(), String> {
     let state = app.state::<EngineState>();
@@ -296,7 +311,6 @@ pub async fn engine_login(app: AppHandle) -> Result<(), String> {
     
     let app_clone = app.clone();
 
-    // 🚀 THE FIX: Detach the visible browser loop so React gets an immediate success response!
     std::thread::spawn(move || {
         let res = launch_and_get_cookies(&profile_dir, &exe_path, true);
         let bg_state = app_clone.state::<EngineState>();
@@ -304,7 +318,6 @@ pub async fn engine_login(app: AppHandle) -> Result<(), String> {
         if let Ok(cookies) = res {
             *bg_state.cached_cookies.lock().unwrap() = Some(cookies);
         }
-        // Safely release the lock when finished or closed
         *bg_state.is_browser_busy.lock().unwrap() = false;
     });
 

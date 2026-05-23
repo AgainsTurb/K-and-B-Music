@@ -220,8 +220,9 @@ export async function getPureAudioStream(bvid: string): Promise<string | null> {
 
     if (!audioStreamResp.ok) return null;
 
-    // 6. Convert to a local Object URL
-    const blob = await audioStreamResp.blob();
+    const arrayBuffer = await audioStreamResp.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: 'audio/mp4' });
+
     currentBlobUrl = URL.createObjectURL(blob);
     currentCachedBvid = bvid;
 

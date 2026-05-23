@@ -740,6 +740,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={handleNext}
           crossOrigin="anonymous"
+          playsInline
           preload="auto"
         />
         
@@ -863,6 +864,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleNext}
         crossOrigin="anonymous"
+        playsInline
         preload="auto"
       />
 
