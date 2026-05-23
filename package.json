@@ -1,7 +1,7 @@
 {
   "name": "k_and_b",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "scan-i18n": "i18next \"src/**/*.{ts,tsx}\" --config i18next-parser.config.cjs",
-    "version": "node sync-version.js"
+    "version": "node sync-version.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
