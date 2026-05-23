@@ -1,3 +1,4 @@
+
 <div align="right">
   <strong><a href="#english">English</a> | <a href="#简体中文">简体中文</a></strong>
 </div>
@@ -8,11 +9,11 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Windows_Only_(For_Now)-blue?logo=windows)](#)
+[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_-blue?logo=github)](#)
 
 **K&B Music** is a modern, cross‑platform music player built from the ground up with Tauri v2, React, and TypeScript. Search, discover, and stream music videos directly from Bilibili, manage personalized playlists, and enjoy an immersive, word-by-word synced rolling lyric experience.
 
-*Note: The ultimate goal is full cross-platform support (Windows, macOS, Linux, Android, iOS). Currently, the **Windows** version is the only fully finished and stable release.*
+*Note: The ultimate goal is full cross-platform support (Windows, macOS, Linux, Android, iOS). The core desktop engine is currently stable across Windows, macOS.*
 
 ---
 
@@ -26,10 +27,9 @@
 * **Mini Player:** A compact, non-intrusive player mode for background listening.
 * **B&O Style Sound EQ:** Interactive, 2D puck-driven sound stage equalizer (Warm/Bright, Relaxed/Energetic).
 * **i18n Localization:** Built-in language engine (currently supporting English and Simplified Chinese).
-* **Automated CI/CD:** Fully automated GitHub Actions pipeline for compiling and publishing `.exe` releases.
+* **Automated CI/CD:** Fully automated GitHub Actions pipeline for compiling and publishing releases across multiple OS architectures.
 
 ### 🚧 Under Development (Coming Soon)
-* 🐧 **macOS & Linux Support:** Porting the core engine to Unix-based systems.
 * 📱 **Mobile Support:** Expanding the Tauri v2 codebase to compile natively for Android and iOS.
 * 🔴 **YouTube Music Integration:** Searching and streaming directly from YouTube/YouTube Music.
 
@@ -52,7 +52,7 @@
 ### Prerequisites
 1. **[Node.js](https://nodejs.org/en/)** (v20 or higher recommended)
 2. **[Rust](https://www.rust-lang.org/tools/install)**
-3. **[Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/)** (C++ Build Tools for Windows)
+3. **[Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/)** (C++ Build Tools for Windows, Xcode command line tools for macOS, WebKit headers for Linux)
 
 ### Installation
 Clone the repository and install the frontend dependencies:
@@ -71,12 +71,30 @@ npm run tauri dev
 ```
 
 ### Building for Production
-Because K&B Music relies entirely on a native Rust backend, building the `.exe` installer requires just a single command:
+Because K&B Music relies entirely on a native Rust backend, building the standalone installer requires just a single command:
 
 ```bash
 npm run tauri build
 ```
 *(Note: If you fork this repo, the included GitHub Actions workflow will handle this automatically upon pushing a version tag!)*
+
+---
+
+## 🏗️ Development Guides
+
+### 🌍 Localization (i18n)
+This project uses `react-i18next` to manage translations. Instead of manually creating translation keys, we use an automated parser.
+1. When building the UI, wrap any English text in the `t()` function (e.g., `t('Play All')`).
+2. Run `npm run scan-i18n` in your terminal. This will scan the entire React codebase, extract all new strings, and automatically inject them into the JSON translation files.
+3. Open `src/locales/zh.json` (or other languages) and provide the localized translations for the newly generated keys.
+
+### 📦 Automated Version Sync
+Do **not** manually edit `version` strings across `package.json`, `Cargo.toml`, and `tauri.conf.json`. We utilize an automated Node.js lifecycle hook to keep the entire workspace synchronized.
+1. To bump the application version (e.g., to `1.0.1`), simply run:
+   ```bash
+   npm version 1.0.1
+   ```
+2. Our custom `sync-version.cjs` script will intercept this command, automatically inject the new version into the Rust and Tauri configuration files, stage them for Git, and finalize the release commit and tag.
 
 ---
 
@@ -112,16 +130,16 @@ This project is licensed under the **GPL-3.0 License**. See the `LICENSE` file f
 <br>
 
 <a id="简体中文"></a>
-# 🎵 K&B Music
+# 🎵 K&B Music (中文版)
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Platform](https://img.shields.io/badge/Platform-仅限Windows_(暂时)-blue?logo=windows)](#)
+[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_-blue?logo=github)](#)
 
 **K&B Music** 是一款基于 Tauri v2、React 和 TypeScript 从零构建的现代跨平台音乐播放器。直接从 Bilibili 搜索、发现和播放音乐视频，管理个人播放列表，并享受沉浸式的逐字同步滚动歌词体验。
 
-*注意：我们的最终目标是实现全平台支持（Windows, macOS, Linux, Android, iOS）。目前，**Windows** 版本是唯一完全完成并稳定的发布版本。*
+*注意：我们的最终目标是实现全平台支持（Windows, macOS, Linux, Android, iOS）。目前，核心桌面引擎已在 Windows和macOS 上稳定运行。*
 
 ---
 
@@ -135,10 +153,9 @@ This project is licensed under the **GPL-3.0 License**. See the `LICENSE` file f
 * **迷你播放器：** 紧凑、不打扰的播放器模式，适合后台收听。
 * **B&O 风格音效均衡器：** 交互式的二维圆盘声场均衡器（温暖/明亮，放松/动感）。
 * **国际化多语言支持：** 内置语言引擎（目前支持英语和简体中文）。
-* **自动化 CI/CD：** 自动化 GitHub Actions 流水线，用于编译并发布 `.exe` 版本。
+* **自动化 CI/CD：** 自动化 GitHub Actions 流水线，用于跨多系统架构编译并发布版本。
 
 ### 🚧 开发中（即将推出）
-* 🐧 **macOS & Linux 支持：** 将核心引擎移植到基于 Unix 的系统。
 * 📱 **移动端支持：** 扩展 Tauri v2 代码库以原生编译 Android 和 iOS 版本。
 * 🔴 **YouTube Music 集成：** 直接从 YouTube/YouTube Music 搜索和播放流媒体。
 
@@ -161,7 +178,7 @@ This project is licensed under the **GPL-3.0 License**. See the `LICENSE` file f
 ### 先决条件
 1. **[Node.js](https://nodejs.org/en/)** (建议 v20 或更高版本)
 2. **[Rust](https://www.rust-lang.org/tools/install)**
-3. **[Tauri 先决条件](https://v2.tauri.app/start/prerequisites/)** (Windows 需要 C++ 构建工具)
+3. **[Tauri 先决条件](https://v2.tauri.app/start/prerequisites/)** (Windows 需要 C++ 构建工具，macOS 需要 Xcode 命令行工具，Linux 需要 WebKit 依赖)
 
 ### 安装
 克隆仓库并安装前端依赖：
@@ -180,12 +197,30 @@ npm run tauri dev
 ```
 
 ### 构建生产版本
-由于 K&B Music 完全依赖原生 Rust 后端，构建 `.exe` 安装程序只需要一条命令：
+由于 K&B Music 完全依赖原生 Rust 后端，构建独立的安装程序只需要一条命令：
 
 ```bash
 npm run tauri build
 ```
 *(注意：如果您 fork 了此仓库，包含的 GitHub Actions 工作流会在您推送版本标签时自动处理此操作！)*
+
+---
+
+## 🏗️ 开发指南
+
+### 🌍 本地化翻译 (i18n)
+本项目使用 `react-i18next` 管理多语言。我们不提倡手动编写翻译键值对，而是使用自动化解析器。
+1. 在编写 React 组件时，将需要翻译的英文文本用 `t()` 函数包裹（例如 `t('Play All')`）。
+2. 在终端运行 `npm run scan-i18n`。这会扫描整个 React 代码库，提取所有新添加的字符串，并自动将它们注入到 JSON 翻译文件中。
+3. 打开 `src/locales/zh.json`（或其他语言文件），为新生成的键值对提供相应的翻译即可。
+
+### 📦 自动化版本同步
+请**不要**在 `package.json`、`Cargo.toml` 和 `tauri.conf.json` 中手动修改版本号。我们使用了 Node.js 钩子脚本来保持整个工作区版本同步。
+1. 升级应用版本（例如升级到 `1.0.1`）时，只需在终端运行：
+   ```bash
+   npm version 1.0.1
+   ```
+2. 我们自定义的 `sync-version.cjs` 脚本会自动拦截此命令，将新版本号注入到 Rust 和 Tauri 配置文件中，通过 Git 自动暂存，并完成最终的发布提交和打标签（Tag）操作。
 
 ---
 
