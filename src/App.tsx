@@ -12,6 +12,7 @@ import PlaylistPage from './components/PlaylistPage';
 import RecommendPage from './components/RecommendPage';
 import AuthManager from './components/AuthManager';
 import { resumeBackgroundSync } from './services/genreSync';
+import { getSyncConfig, triggerCloudSync } from './services/cloud';
 import SettingsPage from './components/SettingsPage';
 import { getPlaylist, addToPlaylist, removeFromPlaylist, updatePlaylistOrder, clearPlaylist, recordPlay, getFavorites, addToFavorites, removeFromFavorites, updateFavoritesOrder, getUserPlaylists, createUserPlaylist, UserPlaylist, addTrackToUserPlaylist } from './services/db';
 import { VideoTrack } from './types';
@@ -135,6 +136,22 @@ export default function App() {
     getFavorites().then(setFavorites);
     loadUserPlaylists();
     resumeBackgroundSync();
+  }, []);
+
+  useEffect(() => {
+    const config = getSyncConfig();
+    if (config.groupId && config.deviceId && config.apiToken) {
+      console.log("Triggering background cloud sync...");
+      triggerCloudSync(config.groupId, config.deviceId, config.apiToken)
+        .then(() => {
+          console.log("Background sync complete. Refreshing local UI data...");
+          // Reload the UI so any pulled changes show up immediately
+          getPlaylist().then(setPlaylist);
+          getFavorites().then(setFavorites);
+          loadUserPlaylists();
+        })
+        .catch(e => console.error("Background sync failed:", e));
+    }
   }, []);
 
   const handleCreatePlaylist = async () => {

@@ -7,6 +7,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 // Note: std::io::Write is no longer needed for the TCP shutdown
 
 mod engine; 
+mod registry;
+mod sync_engine;
 use engine::{engine_status, engine_install, engine_login, EngineState};
 use std::sync::Mutex;
 
@@ -173,7 +175,13 @@ pub fn run() {
             update_taskbar,
             engine_status,
             engine_install,
-            engine_login
+            engine_login,
+            registry::get_device_id,
+            registry::create_sync_group,
+            registry::join_sync_group,
+            registry::leave_sync_group,
+            registry::get_group_pin,
+            sync_engine::trigger_cloud_sync
         ])
         
         .setup(|app| {
