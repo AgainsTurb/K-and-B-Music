@@ -2514,7 +2514,7 @@ dependencies = [
 
 [[package]]
 name = "k_and_b"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "flate2",
  "futures-util",

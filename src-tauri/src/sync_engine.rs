@@ -19,7 +19,7 @@ struct SyncPayload {
 }
 
 #[tauri::command]
-pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: String, token: String) -> Result<String, String> {
+pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: String, _token: String) -> Result<String, String> {
     let client = Client::new();
     let api_url = "https://pan.vma.cc/pan/api.php";
 
