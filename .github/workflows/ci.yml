@@ -1,0 +1,38 @@
+name: Cross-Platform Build Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test-compile:
+    name: Build check on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # 👇 This tells GitHub to run the exact same steps on BOTH systems
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      # Runs tauri build without generating installers just to verify compilation passes
+      - name: Verify Compilation Passes
+        uses: tauri-apps/tauri-action@v0
+        with:
+          args: --no-bundle
