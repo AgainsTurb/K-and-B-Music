@@ -39,6 +39,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AIVEN_DB_URL: ${{ secrets.AIVEN_DB_URL }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'K&B Music ${{ github.ref_name }}'
