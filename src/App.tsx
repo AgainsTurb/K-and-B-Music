@@ -99,6 +99,8 @@ export default function App() {
   const [favorites, setFavorites] = useState<VideoTrack[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<UserPlaylist[]>([]);
   const [trackToAdd, setTrackToAdd] = useState<VideoTrack | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
 
   const loadUserPlaylists = async () => setUserPlaylists(await getUserPlaylists());
 
@@ -154,12 +156,17 @@ export default function App() {
     }
   }, []);
 
-  const handleCreatePlaylist = async () => {
-    const name = prompt("Enter new playlist name:");
-    if (name && name.trim()) { 
-      await createUserPlaylist(name.trim()); 
-      loadUserPlaylists(); 
+  const handleCreatePlaylist = () => {
+    setNewPlaylistName(''); // Clear the input field
+    setIsCreateModalOpen(true);
+  };
+
+  const confirmCreatePlaylist = async () => {
+    if (newPlaylistName.trim()) {
+      await createUserPlaylist(newPlaylistName.trim());
+      loadUserPlaylists();
     }
+    setIsCreateModalOpen(false);
   };
 
   // Save state and record play history when track changes
@@ -424,6 +431,33 @@ export default function App() {
         isMiniMode={isMiniMode}
         onToggleMiniMode={toggleMiniMode}
       />
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)}>
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl w-full max-w-sm mx-4 border border-gray-100 dark:border-gray-800" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-4 text-center text-gray-900 dark:text-white">
+              Create Playlist
+            </h3>
+            <input
+              type="text"
+              autoFocus
+              placeholder="Enter new playlist name..."
+              value={newPlaylistName}
+              onChange={(e) => setNewPlaylistName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && confirmCreatePlaylist()}
+              className="w-full px-4 py-3 mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0b57d0]"
+            />
+            <div className="flex gap-4">
+              <button onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Cancel
+              </button>
+              <button onClick={confirmCreatePlaylist} disabled={!newPlaylistName.trim()} className="flex-1 py-3 rounded-xl bg-[#0b57d0] hover:bg-[#0842a0] text-white font-bold transition-colors disabled:opacity-50">
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

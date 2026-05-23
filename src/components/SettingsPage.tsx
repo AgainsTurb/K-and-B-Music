@@ -18,6 +18,8 @@ export default function SettingsPage() {
     const [generatedPin, setGeneratedPin] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    
+    const [modalMessage, setModalMessage] = useState<string | null>(null);
 
     useEffect(() => {
         getLocalDeviceId().then(id => {
@@ -28,24 +30,26 @@ export default function SettingsPage() {
     }, []);
 
     const handleCreateGroup = async () => {
-        if (!apiToken.trim()) return alert(t("Please enter your vma.cc API Token first."));
+        setIsProcessing(true);
         try {
             const { groupId, pin } = await createSyncGroup();
             saveSyncConfig(groupId, syncConfig.deviceId!, apiToken);
             setSyncConfigState(getSyncConfig());
             setGeneratedPin(pin);
-        } catch (e: any) { alert("Error: " + e); }
+        } catch (e: any) { setModalMessage("Error: " + e); }
+        setIsProcessing(false);
     };
 
     const handleJoinGroup = async () => {
-        if (!apiToken.trim()) return alert(t("Please enter your vma.cc API Token first."));
         if (!joinPin.trim()) return;
+        setIsProcessing(true);
         try {
             const groupId = await joinSyncGroup(joinPin);
             saveSyncConfig(groupId, syncConfig.deviceId!, apiToken);
             setSyncConfigState(getSyncConfig());
             setJoinPin('');
-        } catch (e: any) { alert("Error: " + e); }
+        } catch (e: any) { setModalMessage("Error: " + e); }
+        setIsProcessing(false);
     };
 
     const handleLeaveGroup = async () => {
@@ -58,7 +62,7 @@ export default function SettingsPage() {
             setGeneratedPin(''); 
             setJoinPin('');      
         } catch (e: any) {
-            alert("Error leaving group: " + e);
+            setModalMessage("Error leaving group: " + e);
         }
         setIsProcessing(false);
     };
@@ -70,19 +74,19 @@ export default function SettingsPage() {
             const pin = await getGroupPin(syncConfig.groupId);
             setGeneratedPin(pin);
         } catch (e: any) {
-            alert("Error fetching PIN: " + e);
+            setModalMessage("Error fetching PIN: " + e);
         }
         setIsProcessing(false);
     };
 
     const handleForceSync = async () => {
-        if (!syncConfig.groupId || !syncConfig.deviceId || !apiToken) return;
+        if (!syncConfig.groupId || !syncConfig.deviceId) return;
         setIsSyncing(true);
         try {
             await triggerCloudSync(syncConfig.groupId, syncConfig.deviceId, apiToken);
-            alert(t("Sync completed successfully!"));
+            setModalMessage(t("Sync completed successfully!"));
         } catch (e: any) {
-            alert("Sync Failed: " + e);
+            setModalMessage("Sync Failed: " + e);
         }
         setIsSyncing(false);
     };
@@ -95,7 +99,7 @@ export default function SettingsPage() {
     );
 
     return (
-        <section className="flex-1 overflow-y-auto px-8 pb-32 mt-2">
+        <section className="flex-1 overflow-y-auto px-8 pb-32 mt-2 relative">
             {/* WRAPPED: Settings Title */}
             <h2 className={`text-3xl font-bold mb-8 ${isDark ? 'text-white' : 'text-gray-800'}`}>{t('Settings')}</h2>
 
@@ -254,6 +258,25 @@ export default function SettingsPage() {
                     )}
                 </div>
             </div>
+
+            {modalMessage && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className={`p-6 rounded-2xl shadow-xl w-full max-w-sm mx-4 ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
+                        <h3 className={`text-lg font-bold mb-4 text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {t('Notification')}
+                        </h3>
+                        <p className={`mb-6 text-center text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                            {modalMessage}
+                        </p>
+                        <button 
+                            onClick={() => setModalMessage(null)} 
+                            className="w-full py-3 rounded-xl bg-[#0b57d0] hover:bg-[#0842a0] text-white font-bold transition-colors"
+                        >
+                            {t('OK')}
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </section>
     );

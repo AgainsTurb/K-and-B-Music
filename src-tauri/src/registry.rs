@@ -1,4 +1,5 @@
 // src-tauri/src/registry.rs
+// forcing recompile
 use tauri::command;
 use gethostname::gethostname;
 use sqlx::{MySqlPool, Row};

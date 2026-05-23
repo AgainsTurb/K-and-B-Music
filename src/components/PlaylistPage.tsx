@@ -60,6 +60,7 @@ export default function PlaylistPage({ playlistId, playlists, currentBvid, onPla
   const [editName, setEditName] = useState('');
   const [trackToAdd, setTrackToAdd] = useState<VideoTrack | null>(null);
   const [searchQuery, setSearchQuery] = useState(''); // NEW: Search state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   
   const playlist = playlists.find(p => p.id === playlistId);
@@ -86,11 +87,15 @@ export default function PlaylistPage({ playlistId, playlists, currentBvid, onPla
     setIsEditing(false);
   };
 
-  const handleDelete = async () => {
-    if (confirm(`Are you sure you want to delete "${playlist.name}"?`)) {
-      await deleteUserPlaylist(playlistId);
-      onDeleteComplete();
-    }
+  const handleDelete = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!playlist) return;
+    await deleteUserPlaylist(playlistId);
+    onDeleteComplete();
+    setIsDeleteModalOpen(false);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -215,6 +220,27 @@ export default function PlaylistPage({ playlistId, playlists, currentBvid, onPla
                   );
                 })
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)}>
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl w-full max-w-sm mx-4 border border-gray-100 dark:border-gray-800" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-4 text-center text-gray-900 dark:text-white">
+              {t('Delete Playlist')}
+            </h3>
+            <p className="mb-6 text-center text-sm text-gray-600 dark:text-gray-400">
+              {t('Are you sure you want to delete')} "{playlist?.name}"?
+            </p>
+            <div className="flex gap-4">
+              <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                {t('Cancel')}
+              </button>
+              <button onClick={confirmDelete} className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors">
+                {t('Delete')}
+              </button>
             </div>
           </div>
         </div>

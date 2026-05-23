@@ -48,10 +48,14 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
                 
                 let link_json: Value = link_res.json().await.map_err(|e| e.to_string())?;
                 
-                if let Some(download_url) = link_json["data"]["url"].as_str() {
-                    let file_content = client.get(download_url).send().await.map_err(|e| e.to_string())?;
-                    if let Ok(payload) = file_content.json::<SyncPayload>().await {
-                        foreign_payloads.push(payload);
+                if let Some(download_url) = link_json["data"]["links"]["down"].as_str() {
+                    let file_resp = client.get(download_url).send().await.map_err(|e| e.to_string())?;
+                    if let Ok(text_content) = file_resp.text().await {
+                        if let Ok(payload) = serde_json::from_str::<SyncPayload>(&text_content) {
+                            foreign_payloads.push(payload);
+                        } else {
+                            println!("Failed to parse foreign payload as JSON");
+                        }
                     }
                 }
             }
