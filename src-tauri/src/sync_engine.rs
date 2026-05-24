@@ -86,16 +86,26 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
     
     let json_string = {
         // Smart Path Resolver for Windows vs Mac
-        let mut db_path = app.path().app_local_data_dir()
-            .map_err(|_| "Failed to find App Local Data Dir".to_string())?
+        let mut db_path = app.path().app_config_dir()
+            .map_err(|_| "Failed to find App Config Dir".to_string())?
             .join("kandb.db");
 
-        // Fallback to AppData (Where Windows SQL plugin stores it)
+        // Fallback 1: AppData (Windows Roaming / macOS App Support)
         if !db_path.exists() {
             if let Ok(data_dir) = app.path().app_data_dir() {
                 let data_path = data_dir.join("kandb.db");
                 if data_path.exists() {
                     db_path = data_path;
+                }
+            }
+        }
+
+        // Fallback 2: AppLocalData (Windows Local)
+        if !db_path.exists() {
+            if let Ok(local_dir) = app.path().app_local_data_dir() {
+                let local_path = local_dir.join("kandb.db");
+                if local_path.exists() {
+                    db_path = local_path;
                 }
             }
         }
