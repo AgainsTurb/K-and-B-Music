@@ -4,21 +4,18 @@ import { invoke } from '@tauri-apps/api/core';
 export interface SyncConfig {
   groupId: string | null;
   deviceId: string | null;
-  apiToken: string | null;
 }
 
 export function getSyncConfig(): SyncConfig {
   return {
     groupId: localStorage.getItem('sync_group_id'),
-    deviceId: localStorage.getItem('sync_device_id'),
-    apiToken: localStorage.getItem('sync_api_token')
+    deviceId: localStorage.getItem('sync_device_id')
   };
 }
 
-export function saveSyncConfig(groupId: string, deviceId: string, apiToken: string) {
+export function saveSyncConfig(groupId: string, deviceId: string) {
   localStorage.setItem('sync_group_id', groupId);
-  localStorage.setItem('sync_device_id', deviceId);
-  localStorage.setItem('sync_api_token', apiToken);
+  localStorage.setItem('sync_device_id', deviceId)
 }
 
 export function clearSyncGroup() {
@@ -43,8 +40,8 @@ export async function joinSyncGroup(pin: string): Promise<string> {
   return await invoke<string>('join_sync_group', { pin });
 }
 
-export async function triggerCloudSync(groupId: string, deviceId: string, token: string): Promise<string> {
-  return await invoke<string>('trigger_cloud_sync', { groupId, deviceId, token });
+export async function triggerCloudSync(groupId: string, deviceId: string): Promise<string> {
+  return await invoke<string>('trigger_cloud_sync', { groupId, deviceId });
 }
 
 export async function leaveSyncGroup(groupId: string): Promise<void> {

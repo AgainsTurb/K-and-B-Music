@@ -18,11 +18,11 @@ struct SyncPayload {
 }
 
 #[tauri::command]
-pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: String, _token: String) -> Result<String, String> {
+pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: String) -> Result<String, String> {
     let client = Client::new();
     let api_url = "https://pan.vma.cc/pan/api.php";
 
-    let token = "69b6919924ce0a87d7c259c650834e48ba01ecc73112676f66cddbc61bd46d6e";
+    let token = option_env!("VMA_API_TOKEN").unwrap_or("MISSING_TOKEN");
 
     // ==========================================
     // PHASE A: DISCOVERY & DOWNLOAD

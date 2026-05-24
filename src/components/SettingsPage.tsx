@@ -13,7 +13,6 @@ export default function SettingsPage() {
 
     // --- NEW: Cloud Sync States ---
     const [syncConfig, setSyncConfigState] = useState(getSyncConfig());
-    const [apiToken, setApiToken] = useState(syncConfig.apiToken || '');
     const [joinPin, setJoinPin] = useState('');
     const [generatedPin, setGeneratedPin] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
@@ -33,7 +32,7 @@ export default function SettingsPage() {
         setIsProcessing(true);
         try {
             const { groupId, pin } = await createSyncGroup();
-            saveSyncConfig(groupId, syncConfig.deviceId!, apiToken);
+            saveSyncConfig(groupId, syncConfig.deviceId!);
             setSyncConfigState(getSyncConfig());
             setGeneratedPin(pin);
         } catch (e: any) { setModalMessage("Error: " + e); }
@@ -45,7 +44,7 @@ export default function SettingsPage() {
         setIsProcessing(true);
         try {
             const groupId = await joinSyncGroup(joinPin);
-            saveSyncConfig(groupId, syncConfig.deviceId!, apiToken);
+            saveSyncConfig(groupId, syncConfig.deviceId!);
             setSyncConfigState(getSyncConfig());
             setJoinPin('');
         } catch (e: any) { setModalMessage("Error: " + e); }
@@ -83,7 +82,7 @@ export default function SettingsPage() {
         if (!syncConfig.groupId || !syncConfig.deviceId) return;
         setIsSyncing(true);
         try {
-            await triggerCloudSync(syncConfig.groupId, syncConfig.deviceId, apiToken);
+            await triggerCloudSync(syncConfig.groupId, syncConfig.deviceId);
             setModalMessage(t("Sync completed successfully!"));
 
             window.dispatchEvent(new Event('kandb-sync-complete'));
@@ -171,16 +170,6 @@ export default function SettingsPage() {
                 </h3>
                 
                 <div className="flex flex-col gap-5">
-                    <div>
-                        <label className={`text-sm font-semibold uppercase tracking-wider mb-2 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('API Token')}</label>
-                        <input 
-                            type="password" 
-                            placeholder={t("Enter your pan.vma.cc API Key")}
-                            value={apiToken}
-                            onChange={(e) => setApiToken(e.target.value)}
-                            className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#0b57d0] ${isDark ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-800'}`}
-                        />
-                    </div>
 
                     <div className="flex items-center gap-4 text-sm">
                         <span className={`px-3 py-1 rounded-md font-mono ${isDark ? 'bg-gray-900 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
