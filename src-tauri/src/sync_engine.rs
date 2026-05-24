@@ -245,14 +245,14 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
     // Delete the old file from vma.cc before uploading the new one!
     if let Some(hash) = my_old_file_hash {
         let delete_url = format!("{}?action=delete&api_key={}&hash={}", api_url, token, hash);
-        let _del_res = client.get(&delete_url).send().await; // Firing the delete request quietly
+        let _del_res = client.post(&delete_url).send().await; // Firing the delete request quietly
     }
 
-    let filename = format!("{}_{}.json", group_id, device_id);
+    let filename = format!("{}_{}.bin", group_id, device_id);
 
     let file_part = multipart::Part::stream(json_string)
         .file_name(filename.clone())
-        .mime_str("application/json").unwrap();
+        .mime_str("application/octet-stream").unwrap();
 
     let form = multipart::Form::new()
         .part("file", file_part)

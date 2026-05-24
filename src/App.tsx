@@ -140,6 +140,18 @@ export default function App() {
     resumeBackgroundSync();
   }, []);
 
+  useEffect(() => {
+    const handleSyncReload = () => {
+      console.log("Sync event received! Reloading UI from local database...");
+      getPlaylist().then(setPlaylist);
+      getFavorites().then(setFavorites);
+      loadUserPlaylists();
+    };
+    
+    window.addEventListener('kandb-sync-complete', handleSyncReload);
+    return () => window.removeEventListener('kandb-sync-complete', handleSyncReload);
+  }, []);
+
   const handleCreatePlaylist = () => {
     setNewPlaylistName(''); // Clear the input field
     setIsCreateModalOpen(true);

@@ -85,6 +85,8 @@ export default function SettingsPage() {
         try {
             await triggerCloudSync(syncConfig.groupId, syncConfig.deviceId, apiToken);
             setModalMessage(t("Sync completed successfully!"));
+
+            window.dispatchEvent(new Event('kandb-sync-complete'));
         } catch (e: any) {
             setModalMessage("Sync Failed: " + e);
         }
