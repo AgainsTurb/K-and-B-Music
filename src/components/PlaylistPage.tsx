@@ -163,10 +163,8 @@ export default function PlaylistPage({ playlistId, playlists, currentBvid, onPla
              <div className="flex-1 pl-1">{t('Title & Artist')}</div>
           </div>
           <div className="flex flex-col gap-1">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              {/* CHANGED: Mapping filteredTracks instead of tracks */}
-              <SortableContext items={filteredTracks.map(t => t.bvid)} strategy={verticalListSortingStrategy}>
-                {filteredTracks.map((item, index) => (
+            {searchQuery.trim() ? (
+                filteredTracks.map((item, index) => (
                   <SortablePlaylistItem 
                     key={item.bvid} item={item} index={index} currentBvid={currentBvid} onPlayTrack={onPlayTrack} 
                     onRemove={async (bvid: string) => { await removeTrackFromUserPlaylist(playlistId, bvid); getPlaylistTracks(playlistId).then(setTracks); onRefreshPlaylists(); }} 
@@ -174,9 +172,22 @@ export default function PlaylistPage({ playlistId, playlists, currentBvid, onPla
                     isFav={favorites.some(f => f.bvid === item.bvid)}
                     onToggleFav={onToggleFavorite}
                   />
-                ))}
-              </SortableContext>
-            </DndContext>
+                ))
+            ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={tracks.map(t => t.bvid)} strategy={verticalListSortingStrategy}>
+                    {tracks.map((item, index) => (
+                      <SortablePlaylistItem 
+                        key={item.bvid} item={item} index={index} currentBvid={currentBvid} onPlayTrack={onPlayTrack} 
+                        onRemove={async (bvid: string) => { await removeTrackFromUserPlaylist(playlistId, bvid); getPlaylistTracks(playlistId).then(setTracks); onRefreshPlaylists(); }} 
+                        onOpenPlaylistModal={setTrackToAdd}
+                        isFav={favorites.some(f => f.bvid === item.bvid)}
+                        onToggleFav={onToggleFavorite}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+            )}
           </div>
         </>
       )}

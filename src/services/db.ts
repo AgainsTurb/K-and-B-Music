@@ -221,8 +221,9 @@ export async function removeFromFavorites(bvid: string, platform: string = 'bili
 
 export async function updateFavoritesOrder(tracks: VideoTrack[], platform: string = 'bilibili') {
   const database = await initDb();
+  const now = Date.now();
   for (let i = 0; i < tracks.length; i++) {
-    await database.execute('UPDATE favorites SET sort_order = $1, updated_at = $2 WHERE platform = $3 AND bvid = $4', [i, now(), platform, tracks[i].bvid]);
+    await database.execute('UPDATE favorites SET sort_order = $1, updated_at = $2 WHERE bvid = $3', [i, now, tracks[i].bvid]);
   }
 }
 

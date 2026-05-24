@@ -102,6 +102,26 @@ pub async fn leave_sync_group(group_id: String) -> Result<(), String> {
     let pool = get_pool().await?;
     let device_id = get_device_id();
 
+    let token = option_env!("VMA_API_TOKEN").unwrap_or("MISSING_TOKEN");
+    let api_url = "https://pan.vma.cc/pan/api.php";
+    let filename = format!("{}_{}.bin", group_id, device_id);
+
+    let client = reqwest::Client::new();
+    if let Ok(list_res) = client.get(format!("{}?action=list", api_url)).header("Authorization", format!("Bearer {}", token)).send().await {
+        if let Ok(list_json) = list_res.json::<serde_json::Value>().await {
+            if let Some(items_array) = list_json["data"]["items"].as_array() {
+                for file in items_array {
+                    if file["name"].as_str().unwrap_or("") == filename {
+                        if let Some(hash) = file["hash"].as_str() {
+                            let delete_url = format!("{}?action=delete&api_key={}&hash={}", api_url, token, hash);
+                            let _ = client.post(&delete_url).send().await;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // 1. Remove this device from the group
     sqlx::query("DELETE FROM group_members WHERE device_id = ? AND group_id = ?")
         .bind(&device_id)
