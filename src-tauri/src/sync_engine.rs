@@ -15,7 +15,6 @@ struct SyncPayload {
     playlist: Vec<Value>,
     recent: Vec<Value>,
     user_playlist_tracks: Vec<Value>,
-    // You can add the other tables (playlist, recent) here following the exact same pattern!
 }
 
 #[tauri::command]
@@ -35,26 +34,35 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
         
     let list_json: Value = list_res.json().await.map_err(|e| e.to_string())?;
     let mut foreign_payloads: Vec<SyncPayload> = Vec::new();
+    
+    // We will store the hash of our old file so we can delete it later
+    let mut my_old_file_hash: Option<String> = None;
 
     if let Some(data_array) = list_json["data"].as_array() {
         for file in data_array {
             let file_name = file["name"].as_str().unwrap_or("");
             let file_hash = file["hash"].as_str().unwrap_or("");
 
-            if file_name.starts_with(&group_id) && !file_name.contains(&device_id) {
-                let link_res = client.get(format!("{}?action=links&hash={}", api_url, file_hash))
-                    .header("Authorization", format!("Bearer {}", token))
-                    .send().await.map_err(|e| e.to_string())?;
-                
-                let link_json: Value = link_res.json().await.map_err(|e| e.to_string())?;
-                
-                if let Some(download_url) = link_json["data"]["links"]["down"].as_str() {
-                    let file_resp = client.get(download_url).send().await.map_err(|e| e.to_string())?;
-                    if let Ok(text_content) = file_resp.text().await {
-                        if let Ok(payload) = serde_json::from_str::<SyncPayload>(&text_content) {
-                            foreign_payloads.push(payload);
-                        } else {
-                            println!("Failed to parse foreign payload as JSON");
+            if file_name.starts_with(&group_id) {
+                if file_name.contains(&device_id) {
+                    // Found our old file! Save its hash.
+                    my_old_file_hash = Some(file_hash.to_string());
+                } else {
+                    // Foreign file: Download it
+                    let link_res = client.get(format!("{}?action=links&hash={}", api_url, file_hash))
+                        .header("Authorization", format!("Bearer {}", token))
+                        .send().await.map_err(|e| e.to_string())?;
+                    
+                    let link_json: Value = link_res.json().await.map_err(|e| e.to_string())?;
+                    
+                    if let Some(download_url) = link_json["data"]["links"]["down"].as_str() {
+                        let file_resp = client.get(download_url).send().await.map_err(|e| e.to_string())?;
+                        if let Ok(text_content) = file_resp.text().await {
+                            if let Ok(payload) = serde_json::from_str::<SyncPayload>(&text_content) {
+                                foreign_payloads.push(payload);
+                            } else {
+                                println!("Failed to parse foreign payload as JSON");
+                            }
                         }
                     }
                 }
@@ -67,9 +75,20 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
     // ==========================================
     
     let json_string = {
-        let db_path = app.path().app_local_data_dir()
+        // Smart Path Resolver for Windows vs Mac
+        let mut db_path = app.path().app_data_dir()
             .map_err(|_| "Failed to find App Data Dir".to_string())?
             .join("kandb.db");
+
+        // If it's not in Roaming (AppData), fallback to Local (AppLocalData)
+        if !db_path.exists() {
+            if let Ok(local_dir) = app.path().app_local_data_dir() {
+                let local_path = local_dir.join("kandb.db");
+                if local_path.exists() {
+                    db_path = local_path;
+                }
+            }
+        }
 
         let mut db = Connection::open(&db_path).map_err(|e| e.to_string())?;
         db.pragma_update(None, "journal_mode", "WAL").unwrap();
@@ -175,46 +194,46 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
             ..Default::default()
         };
 
-        // 1. Export Favorites (SAFE)
+        // 1. Export Favorites
         if let Ok(mut stmt) = db.prepare("SELECT uuid, platform, bvid, track_data, sort_order, updated_at, is_deleted FROM favorites") {
             if let Ok(iter) = stmt.query_map([], |row| {
-                Ok(json!({"uuid": row.get::<_, String>(0)?, "platform": row.get::<_, String>(1)?, "bvid": row.get::<_, String>(2)?, "track_data": row.get::<_, String>(3)?, "sort_order": row.get::<_, i64>(4)?, "updated_at": row.get::<_, i64>(5)?, "is_deleted": row.get::<_, i64>(6)?}))
+                Ok(json!({"uuid": row.get::<_, String>(0).unwrap_or_default(), "platform": row.get::<_, String>(1).unwrap_or_default(), "bvid": row.get::<_, String>(2).unwrap_or_default(), "track_data": row.get::<_, String>(3).unwrap_or_default(), "sort_order": row.get::<_, i64>(4).unwrap_or_default(), "updated_at": row.get::<_, i64>(5).unwrap_or_default(), "is_deleted": row.get::<_, i64>(6).unwrap_or_default()}))
             }) {
                 for item in iter.flatten() { final_payload.favorites.push(item); }
             }
         }
 
-        // 2. Export User Playlists (SAFE)
+        // 2. Export User Playlists
         if let Ok(mut stmt) = db.prepare("SELECT uuid, name, created_at, updated_at, is_deleted FROM user_playlists") {
             if let Ok(iter) = stmt.query_map([], |row| {
-                Ok(json!({"uuid": row.get::<_, String>(0)?, "name": row.get::<_, String>(1)?, "created_at": row.get::<_, i64>(2)?, "updated_at": row.get::<_, i64>(3)?, "is_deleted": row.get::<_, i64>(4)?}))
+                Ok(json!({"uuid": row.get::<_, String>(0).unwrap_or_default(), "name": row.get::<_, String>(1).unwrap_or_default(), "created_at": row.get::<_, i64>(2).unwrap_or_default(), "updated_at": row.get::<_, i64>(3).unwrap_or_default(), "is_deleted": row.get::<_, i64>(4).unwrap_or_default()}))
             }) {
                 for item in iter.flatten() { final_payload.user_playlists.push(item); }
             }
         }
 
-        // 3. Export Playing Queue (playlist) (SAFE)
+        // 3. Export Playing Queue (playlist)
         if let Ok(mut stmt) = db.prepare("SELECT uuid, platform, bvid, track_data, sort_order, updated_at, is_deleted FROM playlist") {
             if let Ok(iter) = stmt.query_map([], |row| {
-                Ok(json!({"uuid": row.get::<_, String>(0)?, "platform": row.get::<_, String>(1)?, "bvid": row.get::<_, String>(2)?, "track_data": row.get::<_, String>(3)?, "sort_order": row.get::<_, i64>(4)?, "updated_at": row.get::<_, i64>(5)?, "is_deleted": row.get::<_, i64>(6)?}))
+                Ok(json!({"uuid": row.get::<_, String>(0).unwrap_or_default(), "platform": row.get::<_, String>(1).unwrap_or_default(), "bvid": row.get::<_, String>(2).unwrap_or_default(), "track_data": row.get::<_, String>(3).unwrap_or_default(), "sort_order": row.get::<_, i64>(4).unwrap_or_default(), "updated_at": row.get::<_, i64>(5).unwrap_or_default(), "is_deleted": row.get::<_, i64>(6).unwrap_or_default()}))
             }) {
                 for item in iter.flatten() { final_payload.playlist.push(item); }
             }
         }
 
-        // 4. Export Recent (SAFE)
+        // 4. Export Recent
         if let Ok(mut stmt) = db.prepare("SELECT platform, bvid, track_data, play_count, total_time, last_played, updated_at, is_deleted FROM recent") {
             if let Ok(iter) = stmt.query_map([], |row| {
-                Ok(json!({"platform": row.get::<_, String>(0)?, "bvid": row.get::<_, String>(1)?, "track_data": row.get::<_, String>(2)?, "play_count": row.get::<_, i64>(3)?, "total_time": row.get::<_, i64>(4)?, "last_played": row.get::<_, i64>(5)?, "updated_at": row.get::<_, i64>(6)?, "is_deleted": row.get::<_, i64>(7)?}))
+                Ok(json!({"platform": row.get::<_, String>(0).unwrap_or_default(), "bvid": row.get::<_, String>(1).unwrap_or_default(), "track_data": row.get::<_, String>(2).unwrap_or_default(), "play_count": row.get::<_, i64>(3).unwrap_or_default(), "total_time": row.get::<_, i64>(4).unwrap_or_default(), "last_played": row.get::<_, i64>(5).unwrap_or_default(), "updated_at": row.get::<_, i64>(6).unwrap_or_default(), "is_deleted": row.get::<_, i64>(7).unwrap_or_default()}))
             }) {
                 for item in iter.flatten() { final_payload.recent.push(item); }
             }
         }
 
-        // 5. Export User Playlist Tracks (SAFE)
+        // 5. Export User Playlist Tracks
         if let Ok(mut stmt) = db.prepare("SELECT uuid, playlist_uuid, platform, bvid, track_data, sort_order, updated_at, is_deleted FROM user_playlist_tracks") {
             if let Ok(iter) = stmt.query_map([], |row| {
-                Ok(json!({"uuid": row.get::<_, String>(0)?, "playlist_uuid": row.get::<_, String>(1)?, "platform": row.get::<_, String>(2)?, "bvid": row.get::<_, String>(3)?, "track_data": row.get::<_, String>(4)?, "sort_order": row.get::<_, i64>(5)?, "updated_at": row.get::<_, i64>(6)?, "is_deleted": row.get::<_, i64>(7)?}))
+                Ok(json!({"uuid": row.get::<_, String>(0).unwrap_or_default(), "playlist_uuid": row.get::<_, String>(1).unwrap_or_default(), "platform": row.get::<_, String>(2).unwrap_or_default(), "bvid": row.get::<_, String>(3).unwrap_or_default(), "track_data": row.get::<_, String>(4).unwrap_or_default(), "sort_order": row.get::<_, i64>(5).unwrap_or_default(), "updated_at": row.get::<_, i64>(6).unwrap_or_default(), "is_deleted": row.get::<_, i64>(7).unwrap_or_default()}))
             }) {
                 for item in iter.flatten() { final_payload.user_playlist_tracks.push(item); }
             }
@@ -222,6 +241,12 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
 
         serde_json::to_string(&final_payload).map_err(|e| e.to_string())?
     }; 
+
+    // Delete the old file from vma.cc before uploading the new one!
+    if let Some(hash) = my_old_file_hash {
+        let delete_url = format!("{}?action=delete&api_key={}&hash={}", api_url, token, hash);
+        let _del_res = client.get(&delete_url).send().await; // Firing the delete request quietly
+    }
 
     let filename = format!("{}_{}.json", group_id, device_id);
 

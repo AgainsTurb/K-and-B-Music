@@ -140,22 +140,6 @@ export default function App() {
     resumeBackgroundSync();
   }, []);
 
-  useEffect(() => {
-    const config = getSyncConfig();
-    if (config.groupId && config.deviceId && config.apiToken) {
-      console.log("Triggering background cloud sync...");
-      triggerCloudSync(config.groupId, config.deviceId, config.apiToken)
-        .then(() => {
-          console.log("Background sync complete. Refreshing local UI data...");
-          // Reload the UI so any pulled changes show up immediately
-          getPlaylist().then(setPlaylist);
-          getFavorites().then(setFavorites);
-          loadUserPlaylists();
-        })
-        .catch(e => console.error("Background sync failed:", e));
-    }
-  }, []);
-
   const handleCreatePlaylist = () => {
     setNewPlaylistName(''); // Clear the input field
     setIsCreateModalOpen(true);
