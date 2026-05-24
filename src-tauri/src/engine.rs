@@ -100,14 +100,15 @@ fn launch_and_get_cookies(profile_dir: &PathBuf, exe_path: &PathBuf, is_visible:
         }
 
     } else {
+        // 👇 FIXED: Fast, deterministic background checking
         let _ = tab.navigate_to("https://www.bilibili.com");
-        std::thread::sleep(std::time::Duration::from_secs(3));
+        let _ = tab.wait_for_element("body"); 
         if let Ok(cookies) = tab.get_cookies() {
             all_cookies.extend(cookies);
         }
 
         let _ = tab.navigate_to("https://www.chosic.com/music-genre-finder");
-        std::thread::sleep(std::time::Duration::from_secs(2));
+        let _ = tab.wait_for_element("body");
         if let Ok(cookies) = tab.get_cookies() {
             all_cookies.extend(cookies);
         }
@@ -167,6 +168,7 @@ pub async fn engine_status(app: AppHandle) -> Result<serde_json::Value, String> 
             if let Ok(cookies) = res {
                 *bg_state.cached_cookies.lock().unwrap() = Some(cookies);
             }
+            
             *bg_state.is_browser_busy.lock().unwrap() = false;
         });
         
@@ -255,7 +257,7 @@ pub async fn engine_install(app: AppHandle) -> Result<(), String> {
 
                 *state.download_status.lock().unwrap() = "extracting".to_string();
                 
-                // 👇 MODIFIED: Conditional extraction depending on OS
+                // Conditional extraction depending on OS
                 #[cfg(target_os = "windows")]
                 if let Ok(file) = File::open(&archive_path) {
                     if let Ok(mut archive) = zip::ZipArchive::new(file) {
@@ -318,6 +320,7 @@ pub async fn engine_login(app: AppHandle) -> Result<(), String> {
         if let Ok(cookies) = res {
             *bg_state.cached_cookies.lock().unwrap() = Some(cookies);
         }
+        
         *bg_state.is_browser_busy.lock().unwrap() = false;
     });
 
