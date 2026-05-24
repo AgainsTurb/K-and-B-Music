@@ -27,46 +27,56 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
     // ==========================================
     // PHASE A: DISCOVERY & DOWNLOAD
     // ==========================================
-    
-    let list_res = client.get(format!("{}?action=list", api_url))
-        .header("Authorization", format!("Bearer {}", token))
-        .send().await.map_err(|e| e.to_string())?;
-        
-    let list_json: Value = list_res.json().await.map_err(|e| e.to_string())?;
     let mut foreign_payloads: Vec<SyncPayload> = Vec::new();
     
     // We will store the hash of our old file so we can delete it later
-    let mut my_old_file_hash: Option<String> = None;
+    let mut my_old_file_hashes: Vec<String> = Vec::new(); 
+    let mut page = 1;
 
-    if let Some(data_array) = list_json["data"].as_array() {
-        for file in data_array {
-            let file_name = file["name"].as_str().unwrap_or("");
-            let file_hash = file["hash"].as_str().unwrap_or("");
+    loop {
+        let list_url = format!("{}?action=list&page={}&limit=20", api_url, page);
+        let list_res = client.get(&list_url)
+            .header("Authorization", format!("Bearer {}", token))
+            .send().await.map_err(|e| e.to_string())?;
+            
+        let list_json: Value = list_res.json().await.map_err(|e| e.to_string())?;
 
-            if file_name.starts_with(&group_id) {
-                if file_name.contains(&device_id) {
-                    // Found our old file! Save its hash.
-                    my_old_file_hash = Some(file_hash.to_string());
-                } else {
-                    // Foreign file: Download it
-                    let link_res = client.get(format!("{}?action=links&hash={}", api_url, file_hash))
-                        .header("Authorization", format!("Bearer {}", token))
-                        .send().await.map_err(|e| e.to_string())?;
-                    
-                    let link_json: Value = link_res.json().await.map_err(|e| e.to_string())?;
-                    
-                    if let Some(download_url) = link_json["data"]["links"]["down"].as_str() {
-                        let file_resp = client.get(download_url).send().await.map_err(|e| e.to_string())?;
-                        if let Ok(text_content) = file_resp.text().await {
-                            if let Ok(payload) = serde_json::from_str::<SyncPayload>(&text_content) {
-                                foreign_payloads.push(payload);
-                            } else {
-                                println!("Failed to parse foreign payload as JSON");
+        // 👇 FIXED: The API nests the array inside data.items!
+        if let Some(items_array) = list_json["data"]["items"].as_array() {
+            if items_array.is_empty() {
+                break; // Reached the last page, exit the loop
+            }
+
+            for file in items_array {
+                let file_name = file["name"].as_str().unwrap_or("");
+                let file_hash = file["hash"].as_str().unwrap_or("");
+
+                if file_name.starts_with(&group_id) {
+                    if file_name.contains(&device_id) {
+                        // Found our old file(s)! Save hashes to delete later.
+                        my_old_file_hashes.push(file_hash.to_string());
+                    } else {
+                        // Foreign file: Download it
+                        let link_res = client.get(format!("{}?action=links&hash={}", api_url, file_hash))
+                            .header("Authorization", format!("Bearer {}", token))
+                            .send().await.map_err(|e| e.to_string())?;
+                        
+                        let link_json: Value = link_res.json().await.map_err(|e| e.to_string())?;
+                        
+                        if let Some(download_url) = link_json["data"]["links"]["down"].as_str() {
+                            let file_resp = client.get(download_url).send().await.map_err(|e| e.to_string())?;
+                            if let Ok(text_content) = file_resp.text().await {
+                                if let Ok(payload) = serde_json::from_str::<SyncPayload>(&text_content) {
+                                    foreign_payloads.push(payload);
+                                }
                             }
                         }
                     }
                 }
             }
+            page += 1; // Check the next page
+        } else {
+            break; // Failsafe break
         }
     }
 
@@ -243,9 +253,9 @@ pub async fn trigger_cloud_sync(app: AppHandle, group_id: String, device_id: Str
     }; 
 
     // Delete the old file from vma.cc before uploading the new one!
-    if let Some(hash) = my_old_file_hash {
+    for hash in my_old_file_hashes {
         let delete_url = format!("{}?action=delete&api_key={}&hash={}", api_url, token, hash);
-        let _del_res = client.post(&delete_url).send().await; // Firing the delete request quietly
+        let _del_res = client.post(&delete_url).send().await; 
     }
 
     let filename = format!("{}_{}.bin", group_id, device_id);
