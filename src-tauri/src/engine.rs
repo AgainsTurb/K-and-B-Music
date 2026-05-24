@@ -29,7 +29,7 @@ const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/dow
 const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v145.0.7632.109.2/cloakbrowser-darwin-x64.tar.gz";
 
 #[cfg(target_os = "linux")]
-const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v146.0.7680.177.4/cloakbrowser-linux-x64.tar.gz";
+const DOWNLOAD_URL: &str = "https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v145.0.7632.109.2/cloakbrowser-linux-x64.tar.gz";
 
 fn find_executable(dir: &Path) -> Option<PathBuf> {
     if !dir.exists() { return None; }
