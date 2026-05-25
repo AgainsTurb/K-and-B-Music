@@ -127,7 +127,7 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
         <div className="w-6 shrink-0 text-center text-xs font-bold text-gray-400 dark:text-gray-500">{index + 1}</div>
         
         <div className="w-14 h-10 rounded-md overflow-hidden shrink-0">
-          <img src={track.cover.startsWith('//') ? `https:${track.cover}` : track.cover} alt="cover" className="w-full h-full object-cover" />
+          <img src={track.cover.startsWith('//') ? `https:${track.cover}` : track.cover.replace('http://', 'https://')} alt="cover" className="w-full h-full object-cover" />
         </div>
         
         {/* ADDED min-w-0 HERE: This is the magic class that allows truncate to work inside a flex container! */}
@@ -183,7 +183,7 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
                 const isFav = favorites.some(f => f.bvid === track.bvid);
                 return (
                   <div key={`special-${track.bvid}-${i}`} onClick={() => onPlayTrack(track)} className="relative group rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 aspect-square cursor-pointer shadow-sm">
-                    <img src={track.cover.startsWith('//') ? `https:${track.cover}` : track.cover} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="cover"/>
+                    <img src={track.cover.startsWith('//') ? `https:${track.cover}` : track.cover.replace('http://', 'https://')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="cover"/>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-3">
                       <span className="text-white text-xs font-semibold line-clamp-2 mb-0.5 leading-tight group-hover:text-[#d3e3fd] transition-colors">{track.title}</span>
                       <span className="text-gray-300 text-[10px] truncate">{track.uploader}</span>

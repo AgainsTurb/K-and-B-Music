@@ -32,7 +32,8 @@ build/
 # Rust / Tauri
 src-tauri/target/
 src-tauri/gen/android/app/build/
-# src-tauri/gen/
+src-tauri/gen/apple/build/
+src-tauri/gen/apple/Externals/
 **/*.rs.bk
 
 # Sidecar & Temp files
