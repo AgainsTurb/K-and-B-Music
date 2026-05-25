@@ -1,4 +1,5 @@
 
+
 <div align="right">
   <strong><a href="#english">English</a> | <a href="#简体中文">简体中文</a></strong>
 </div>
@@ -9,11 +10,11 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_-blue?logo=github)](#)
+[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_|_Linux|_Android-blue?logo=github)](#)
 
 **K&B Music** is a modern, cross‑platform music player built from the ground up with Tauri v2, React, and TypeScript. Search, discover, and stream music videos directly from Bilibili, manage personalized playlists, and enjoy an immersive, word-by-word synced rolling lyric experience.
 
-*Note: The ultimate goal is full cross-platform support (Windows, macOS, Linux, Android, iOS). The core desktop engine is currently stable across Windows, macOS.*
+*Note: The ultimate goal is full cross-platform support (Windows, macOS, Linux, Android, iOS). The core desktop engine is currently stable across Windows, macOS, Linux, Android.*
 
 ---
 
@@ -58,10 +59,17 @@
 Clone the repository and install the frontend dependencies:
 
 ```bash
-git clone [https://github.com/AgainsTurb/K-and-B-Music.git](https://github.com/AgainsTurb/K-and-B-Music.git)
+git clone https://github.com/AgainsTurb/K-and-B-Music.git
 cd K-and-B-Music
 npm install
 ```
+
+### Environment Variables (Important)
+For safety concerns, the open-source codebase does not include the official database or cloud storage credentials. If you are compiling the app from source for local development, you must provide your own Aiven MySQL DB and VMA Cloud API tokens. Create a `config.toml` file at `.cargo/config.toml` and add your keys:
+```toml 
+[env] AIVEN_DB_URL = "your_aiven_mysql_url_here" VMA_API_TOKEN = "your_vma_api_token_here" 
+```
+*Note: The official pre-compiled binaries provided in the GitHub Releases tab already contain the corresponding secure tokens for public usage. You only need to do this if you are building the app yourself!*
 
 ### Running the App
 To start the Vite development server and the Tauri Rust backend simultaneously:
@@ -135,11 +143,11 @@ This project is licensed under the **GPL-3.0 License**. See the `LICENSE` file f
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_-blue?logo=github)](#)
+[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_|_Linux|_Android-blue?logo=github)](#)
 
 **K&B Music** 是一款基于 Tauri v2、React 和 TypeScript 从零构建的现代跨平台音乐播放器。直接从 Bilibili 搜索、发现和播放音乐视频，管理个人播放列表，并享受沉浸式的逐字同步滚动歌词体验。
 
-*注意：我们的最终目标是实现全平台支持（Windows, macOS, Linux, Android, iOS）。目前，核心桌面引擎已在 Windows和macOS 上稳定运行。*
+*注意：我们的最终目标是实现全平台支持（Windows, macOS, Linux, Android, iOS）。目前，核心桌面引擎已在 Windows，macOS，Linux和Android 上稳定运行。*
 
 ---
 
@@ -184,10 +192,17 @@ This project is licensed under the **GPL-3.0 License**. See the `LICENSE` file f
 克隆仓库并安装前端依赖：
 
 ```bash
-git clone [https://github.com/AgainsTurb/K-and-B-Music.git](https://github.com/AgainsTurb/K-and-B-Music.git)
+git clone https://github.com/AgainsTurb/K-and-B-Music.git
 cd K-and-B-Music
 npm install
 ```
+
+###  环境变量配置 (重要)
+出于安全考虑，开源代码库中不包含官方数据库或云存储的凭证。如果您从源码编译此应用进行本地开发，您必须提供自己的 Aiven MySQL DB 和 VMA Cloud API 令牌。请在 `.cargo/config.toml` 创建配置文件并添加您的密钥：
+```toml 
+[env] AIVEN_DB_URL = "your_aiven_mysql_url_here" VMA_API_TOKEN = "your_vma_api_token_here" 
+```
+*注意：在 GitHub Releases 页面提供的官方预编译程序已经内置了对应的安全令牌，供公众直接使用。只有当您自行编译应用时才需要执行此步骤！*
 
 ### 运行应用
 同时启动 Vite 开发服务器和 Tauri Rust 后端：
