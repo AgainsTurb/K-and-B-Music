@@ -59,3 +59,13 @@ export async function leaveSyncGroup(groupId: string, deviceId: string): Promise
 export async function getGroupPin(groupId: string): Promise<string> {
   return await invoke<string>('get_group_pin', { groupId });
 }
+
+export async function requestCookieTransfer(): Promise<string> {
+  return await invoke<string>('request_cookie_transfer');
+}
+export async function submitCookieTransfer(pin: string, cookies: string): Promise<void> {
+  await invoke('submit_cookie_transfer', { pin, cookies });
+}
+export async function pollCookieTransfer(pin: string): Promise<string | null> {
+  return await invoke<string | null>('poll_cookie_transfer', { pin });
+}

@@ -187,6 +187,9 @@ pub fn run() {
         registry::join_sync_group,
         registry::leave_sync_group,
         registry::get_group_pin,
+        registry::request_cookie_transfer,
+        registry::submit_cookie_transfer,
+        registry::poll_cookie_transfer,
         sync_engine::trigger_cloud_sync
     ])
     .setup(|app| {

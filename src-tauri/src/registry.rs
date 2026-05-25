@@ -62,7 +62,50 @@ async fn get_pool() -> Result<MySqlPool, String> {
         )"
     ).execute(&pool).await;
 
+    let _ = sqlx::query(
+        "CREATE TABLE IF NOT EXISTS cookie_transfers (
+            pin VARCHAR(6) PRIMARY KEY,
+            cookies TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )"
+    ).execute(&pool).await;
+
     Ok(pool)
+}
+
+#[command]
+pub async fn request_cookie_transfer() -> Result<String, String> {
+    let pool = get_pool().await?;
+    let pin = format!("{:06}", rand::thread_rng().gen_range(100000..999999));
+    sqlx::query("INSERT INTO cookie_transfers (pin) VALUES (?)")
+        .bind(&pin).execute(&pool).await.map_err(|e| e.to_string())?;
+    Ok(pin)
+}
+
+#[command]
+pub async fn submit_cookie_transfer(pin: String, cookies: String) -> Result<(), String> {
+    let pool = get_pool().await?;
+    sqlx::query("UPDATE cookie_transfers SET cookies = ? WHERE pin = ?")
+        .bind(&cookies).bind(&pin).execute(&pool).await.map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[command]
+pub async fn poll_cookie_transfer(pin: String) -> Result<Option<String>, String> {
+    let pool = get_pool().await?;
+    let row = sqlx::query("SELECT cookies FROM cookie_transfers WHERE pin = ?")
+        .bind(&pin).fetch_optional(&pool).await.map_err(|e| e.to_string())?;
+    
+    if let Some(record) = row {
+        let cookies: Option<String> = record.get("cookies");
+        if cookies.is_some() {
+            // Delete immediately after successful pull to keep it secure
+            let _ = sqlx::query("DELETE FROM cookie_transfers WHERE pin = ?").bind(&pin).execute(&pool).await;
+        }
+        Ok(cookies)
+    } else {
+        Ok(None)
+    }
 }
 
 #[command]

@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
-import { getSyncConfig, getLocalDeviceId, createSyncGroup, joinSyncGroup, saveSyncConfig, clearSyncGroup, triggerCloudSync, leaveSyncGroup, getGroupPin } from '../services/cloud';
+import { getSyncConfig, getLocalDeviceId, createSyncGroup, joinSyncGroup, saveSyncConfig, clearSyncGroup, triggerCloudSync, leaveSyncGroup, getGroupPin, submitCookieTransfer } from '../services/cloud';
+import { invoke } from '@tauri-apps/api/core';
 
 export default function SettingsPage() {
     const { theme, setTheme, isDark } = useTheme();
@@ -17,6 +18,8 @@ export default function SettingsPage() {
     const [generatedPin, setGeneratedPin] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [cookiePin, setCookiePin] = useState('');
+    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
     
     const [modalMessage, setModalMessage] = useState<string | null>(null);
 
@@ -92,6 +95,22 @@ export default function SettingsPage() {
             setModalMessage("Sync Failed: " + e);
         }
         setIsSyncing(false);
+    };
+
+    const handleSendCookies = async () => {
+        if (!cookiePin.trim()) return;
+        setIsProcessing(true);
+        try {
+            const data: any = await invoke('engine_status');
+            const payload = JSON.stringify({
+                bili: data.biliCookies || {},
+                chosic: data.chosicCookies || {}
+            });
+            await submitCookieTransfer(cookiePin, payload);
+            setModalMessage(t("Cookies securely sent to mobile!"));
+            setCookiePin('');
+        } catch (e: any) { setModalMessage("Error sending cookies: " + e); }
+        setIsProcessing(false);
     };
 
     const Spinner = () => (
@@ -251,6 +270,32 @@ export default function SettingsPage() {
                     )}
                 </div>
             </div>
+
+            {!isMobile && syncConfig.groupId && (
+                <div className={`max-w-2xl mt-6 rounded-2xl p-6 border shadow-sm ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-100'}`}>
+                    <h3 className={`text-xl font-bold mb-2 flex items-center gap-2 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                        <svg className="w-6 h-6 text-[#0b57d0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        {t('Share Session to Mobile')}
+                    </h3>
+                    <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {t('Mobile devices cannot run the stealth engine. Enter the PIN shown on your mobile device to securely transfer your active cookies.')}
+                    </p>
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <input 
+                            type="text" 
+                            placeholder={t("Enter 6-digit Mobile PIN")}
+                            value={cookiePin}
+                            onChange={(e) => setCookiePin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            disabled={isProcessing}
+                            className={`flex-1 px-4 py-3 rounded-xl border font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-[#0b57d0] disabled:opacity-50 ${isDark ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-800'}`}
+                        />
+                        <button onClick={handleSendCookies} disabled={isProcessing || !cookiePin.trim() || cookiePin.length < 6} className={`w-full md:w-auto px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${isDark ? 'bg-[#0b57d0] text-white hover:bg-[#0842a0]' : 'bg-[#0b57d0] text-white hover:bg-[#0842a0]'}`}>
+                            {isProcessing && <Spinner />}
+                            {t('Send Cookies')}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {modalMessage && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

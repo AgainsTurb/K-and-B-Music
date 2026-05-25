@@ -54,3 +54,45 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.platform == 'macos-latest' && '--bundles app' || '' }}
+
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java (Required for Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Rust toolchain for Android
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Build Android APK
+        env:
+          AIVEN_DB_URL: ${{ secrets.AIVEN_DB_URL }}
+          VMA_API_TOKEN: ${{ secrets.VMA_API_TOKEN }}
+        run: npx tauri android build --apk
+
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: 'src-tauri/gen/android/app/build/outputs/apk/**/*.apk'

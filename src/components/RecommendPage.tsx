@@ -178,11 +178,11 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
           {/* SPECIAL GRIDS AREA */}
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm p-5">
             <div className="font-bold text-gray-800 dark:text-gray-100 mb-4 text-lg tracking-tight">{t('Special Pick')}</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-4">
               {specialTracks.map((track, i) => {
                 const isFav = favorites.some(f => f.bvid === track.bvid);
                 return (
-                  <div key={`special-${track.bvid}-${i}`} onClick={() => onPlayTrack(track)} className="relative group rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 aspect-video md:aspect-square cursor-pointer shadow-sm">
+                  <div key={`special-${track.bvid}-${i}`} onClick={() => onPlayTrack(track)} className="relative group rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 aspect-square cursor-pointer shadow-sm">
                     <img src={track.cover.startsWith('//') ? `https:${track.cover}` : track.cover} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="cover"/>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-3">
                       <span className="text-white text-xs font-semibold line-clamp-2 mb-0.5 leading-tight group-hover:text-[#d3e3fd] transition-colors">{track.title}</span>
@@ -201,9 +201,9 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
           
 
           {/* DUAL COLUMNS GENRES VIEW */}
-          <div className="flex flex-col md:flex-row gap-6 h-[55vh]">
+          <div className="flex flex-col md:flex-row gap-6 md:h-[55vh]">
             {/* GENRE 1 COLUMN */}
-            <div className="flex-1 min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="h-[45vh] md:h-auto flex-1 min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
               <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 font-bold text-gray-700 dark:text-gray-300 capitalize">{t('Taste Node:')} {genre1Name}</div>
               <div className="flex-1 overflow-y-auto p-2" style={{ scrollbarWidth: 'none' }}>
                 {genre1Tracks.map((track, i) => (
@@ -213,7 +213,7 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
             </div>
 
             {/* GENRE 2 COLUMN */}
-            <div className="flex-1 min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="h-[45vh] md:h-auto flex-1 min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
               <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 font-bold text-gray-700 dark:text-gray-300 capitalize">{t('Taste Node:')} {genre2Name}</div>
               <div className="flex-1 overflow-y-auto p-2" style={{ scrollbarWidth: 'none' }}>
                 {genre2Tracks.map((track, i) => (
@@ -227,11 +227,10 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
         )
       ) : (
         // CHANGED: Added max-w-6xl, mx-auto, and w-full to prevent ultra-wide stretching
-        <div className="flex-1 flex flex-col md:flex-row gap-6 md:gap-8 overflow-hidden w-full">
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-6 md:gap-8 overflow-y-auto md:overflow-hidden w-full pb-4" style={{ scrollbarWidth: 'none' }}>
           
           {/* LATEST COLUMN */}
-          {/* CHANGED: Replaced flex-1 with w-full md:w-1/2 to rigidly enforce 50% width regardless of text size */}
-          <div className="flex-1 min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex-none md:flex-1 h-[50vh] md:h-auto min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 font-bold text-gray-700 dark:text-gray-300">{t('Latest Music')}</div>
             <div className="flex-1 overflow-y-auto p-2" style={{ scrollbarWidth: 'none' }}>
               {latestVideos.map((track, i) => (
@@ -242,8 +241,7 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
           </div>
 
           {/* RANKING COLUMN */}
-          {/* CHANGED: Replaced flex-1 with w-full md:w-1/2 */}
-          <div className="flex-1 min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex-none md:flex-1 h-[50vh] md:h-auto min-w-0 flex flex-col bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 font-bold text-gray-700 dark:text-gray-300">{t('Top Ranking')}</div>
             <div className="flex-1 overflow-y-auto p-2" style={{ scrollbarWidth: 'none' }}>
               {rankingVideos.map((track, i) => (
