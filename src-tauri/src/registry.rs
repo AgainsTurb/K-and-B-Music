@@ -14,8 +14,35 @@ async fn get_pool() -> Result<MySqlPool, String> {
         return Ok(pool.clone());
     }
     
-    let url = option_env!("AIVEN_DB_URL").unwrap_or("mysql://mock_user:mock_pass@mock_host:25060/defaultdb");
-    let pool = MySqlPool::connect(url).await.map_err(|e| e.to_string())?;
+    let mut url = option_env!("AIVEN_DB_URL").map(String::from);
+    if url.is_none() {
+        let toml_paths = ["src-tauri/.cargo/config.toml", ".cargo/config.toml"];
+        for path in toml_paths {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                for line in content.lines() {
+                    let clean = line.trim();
+                    if clean.starts_with("AIVEN_DB_URL") {
+                        if let Some(eq_idx) = clean.find('=') {
+                            let val_str = &clean[eq_idx+1..];
+                            if let Some(q1) = val_str.find('"') {
+                                if let Some(q2) = val_str[q1 + 1..].find('"') {
+                                    url = Some(val_str[q1 + 1 .. q1 + 1 + q2].to_string());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if url.is_some() { break; }
+            }
+        }
+    }
+    
+    let final_url = url.unwrap_or_else(|| "mysql://mock_user:mock_pass@mock_host:25060/defaultdb".to_string());
+
+    // println!(">>> DEBUG DB URL: {}", final_url);
+    
+    let pool = MySqlPool::connect(&final_url).await.map_err(|e| e.to_string())?;
     let _ = MYSQL_POOL.set(pool.clone());
     
     // Auto-migrate tables if they don't exist
@@ -45,7 +72,7 @@ pub fn get_device_id() -> String {
 }
 
 #[command]
-pub async fn create_sync_group() -> Result<(String, String), String> {
+pub async fn create_sync_group(device_id: String) -> Result<(String, String), String> {
     let pool = get_pool().await?;
     let group_id = Uuid::new_v4().to_string();
     
@@ -54,7 +81,6 @@ pub async fn create_sync_group() -> Result<(String, String), String> {
         let mut rng = rand::thread_rng();
         format!("{:06}", rng.gen_range(100000..999999))
     };
-    let device_id = get_device_id();
 
     // Insert Group
     sqlx::query("INSERT INTO device_groups (group_id, pin) VALUES (?, ?)")
@@ -72,9 +98,8 @@ pub async fn create_sync_group() -> Result<(String, String), String> {
 }
 
 #[command]
-pub async fn join_sync_group(pin: String) -> Result<String, String> {
+pub async fn join_sync_group(pin: String, device_id: String) -> Result<String, String> {
     let pool = get_pool().await?;
-    let device_id = get_device_id();
 
     // Find the group by PIN
     let row = sqlx::query("SELECT group_id FROM device_groups WHERE pin = ?")
@@ -98,9 +123,8 @@ pub async fn join_sync_group(pin: String) -> Result<String, String> {
 }
 
 #[command]
-pub async fn leave_sync_group(group_id: String) -> Result<(), String> {
+pub async fn leave_sync_group(group_id: String, device_id: String) -> Result<(), String> {
     let pool = get_pool().await?;
-    let device_id = get_device_id();
 
     let token = option_env!("VMA_API_TOKEN").unwrap_or("MISSING_TOKEN");
     let api_url = "https://pan.vma.cc/pan/api.php";

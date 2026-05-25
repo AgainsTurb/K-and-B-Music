@@ -93,7 +93,7 @@ export default function SearchBar({ onSearch, isLoading, onOpenSettings, onToggl
 
         <button 
           onClick={onToggleMiniMode}
-          className="p-3.5 rounded-full transition-colors shrink-0 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+          className="hidden md:block p-3.5 rounded-full transition-colors shrink-0 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
           title="Mini Player"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

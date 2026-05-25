@@ -38,3 +38,5 @@ src-tauri/gen/
 .kandb_profile/
 browser_bin/
 browser.zip
+
+.cargo/config.toml

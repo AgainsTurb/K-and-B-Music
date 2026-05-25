@@ -16,9 +16,11 @@ import { getSyncConfig, triggerCloudSync } from './services/cloud';
 import SettingsPage from './components/SettingsPage';
 import { getPlaylist, addToPlaylist, removeFromPlaylist, updatePlaylistOrder, clearPlaylist, recordPlay, getFavorites, addToFavorites, removeFromFavorites, updateFavoritesOrder, getUserPlaylists, createUserPlaylist, UserPlaylist, addTrackToUserPlaylist } from './services/db';
 import { VideoTrack } from './types';
+import { useTranslation } from 'react-i18next';
 
 // The standalone Floating Lyric UI
 function DesktopLyrics() {
+  const { t } = useTranslation();
   const [lyric, setLyric] = useState<any>({ text: '♪', translation: '', words: null });
   const [effectiveTime, setEffectiveTime] = useState(0);
   
@@ -73,13 +75,40 @@ function DesktopLyrics() {
   );
 }
 
+// Mobile Bottom Navigation Bar
+function BottomNav({ activeView, onNavigate, onTogglePlaylists, t }: { activeView: string, onNavigate: (v: string) => void, onTogglePlaylists: () => void, t: any }) {
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-around items-center pb-[env(safe-area-inset-bottom)] z-[60]">
+       <button onClick={() => onNavigate('Recommend')} className={`p-3 flex flex-col items-center gap-1 ${activeView === 'Recommend' ? 'text-[#0b57d0]' : 'text-gray-500'}`}>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span className="text-[10px] font-medium">{t('Home')}</span>
+       </button>
+       <button onClick={() => onNavigate('Recent')} className={`p-3 flex flex-col items-center gap-1 ${activeView === 'Recent' ? 'text-[#0b57d0]' : 'text-gray-500'}`}>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span className="text-[10px] font-medium">{t('Recent')}</span>
+       </button>
+       <button onClick={() => onNavigate('Favorites')} className={`p-3 flex flex-col items-center gap-1 ${activeView === 'Favorites' ? 'text-[#0b57d0]' : 'text-gray-500'}`}>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          <span className="text-[10px] font-medium">{t('Favs')}</span>
+       </button>
+       <button onClick={onTogglePlaylists} className="p-3 flex flex-col items-center gap-1 text-gray-500 hover:text-[#0b57d0] transition-colors">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h8"/></svg>
+          <span className="text-[10px] font-medium">{t('Playlists')}</span>
+       </button>
+    </nav>
+  );
+}
+
 export default function App() {
+  const { t } = useTranslation();
+
   // If Tauri spawns the lyrics window, Hijack the render instantly!
   if (getCurrentWindow().label === 'lyrics_window') {
     return <DesktopLyrics />;
   }
 
   const [isMiniMode, setIsMiniMode] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Navigation State
   const [activeView, setActiveView] = useState('Recommend');
@@ -275,34 +304,45 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden transition-colors duration-300">
+    // Added pt-[env(safe-area-inset-top)] for the mobile status bar
+    <div className="flex h-screen w-screen overflow-hidden transition-colors duration-300 pt-[env(safe-area-inset-top)]">
+      
+      {/* Hide the Sidebar entirely on mobile (hidden md:flex) */}
       {!isMiniMode && (
-        <Sidebar 
-          activeView={activeView} 
-          activePlaylistId={activePlaylistId}
-          onNavigate={(view, id) => {
-            setActiveView(view);
-            setActivePlaylistId(id || null);
-          }} 
-          playlists={userPlaylists}
-          onCreatePlaylist={handleCreatePlaylist}
-        />
+        <>
+          {/* Dark background overlay for mobile */}
+          {isMobileSidebarOpen && (
+            <div className="md:hidden fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileSidebarOpen(false)} />
+          )}
+          
+          <div className={`fixed inset-y-0 left-0 z-[80] md:relative md:z-auto h-full shrink-0 transform transition-transform duration-300 md:translate-x-0 ${isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+            <Sidebar 
+              activeView={activeView} 
+              activePlaylistId={activePlaylistId}
+              onNavigate={(view, id) => {
+                setActiveView(view);
+                setActivePlaylistId(id || null);
+                setIsMobileSidebarOpen(false); // Auto-close drawer on navigation
+              }} 
+              playlists={userPlaylists}
+              onCreatePlaylist={() => {
+                handleCreatePlaylist();
+                setIsMobileSidebarOpen(false); // Close drawer to show create modal clearly
+              }}
+            />
+          </div>
+        </>
       )}
 
       <AuthManager />
       
-      <main className={`flex-1 flex flex-col h-full relative min-w-0 ${isMiniMode ? 'hidden' : ''}`}>
+      <main className={`flex-1 flex flex-col h-full relative min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 ${isMiniMode ? 'hidden' : ''}`}>
         <SearchBar 
           onSearch={handleInitialSearch} 
           isLoading={isLoading} 
           onOpenSettings={() => {
-            // Toggle logic: If open, go back. If closed, save current and open.
-            if (activeView === 'Settings') {
-              setActiveView(previousView);
-            } else {
-              setPreviousView(activeView);
-              setActiveView('Settings');
-            }
+            if (activeView === 'Settings') setActiveView(previousView);
+            else { setPreviousView(activeView); setActiveView('Settings'); }
           }} 
           onToggleMiniMode={toggleMiniMode}
         />
@@ -412,21 +452,33 @@ export default function App() {
         )}
       </main>
 
-      <PlayerBar 
-        playlist={playlist}
-        currentBvid={currentBvid}
-        onPlayTrack={setCurrentBvid}
-        onReorder={handleReorder}
-        onRemove={handleRemove}
-        onClear={handleClearPlaylist}
-        favorites={favorites}
-        isFavorite={favorites.some(f => f.bvid === currentBvid)}
-        onToggleFavorite={handleToggleFavorite}
-        userPlaylists={userPlaylists}
-        onAddToPlaylist={handleAddToUserPlaylist}
-        isMiniMode={isMiniMode}
-        onToggleMiniMode={toggleMiniMode}
-      />
+      <style>{`
+        @media (max-width: 767px) {
+          .mobile-player-wrapper > * {
+            transform: translateY(calc(-4rem - env(safe-area-inset-bottom))) !important;
+          }
+        }
+      `}</style>
+
+      <div className={`${isMiniMode ? '' : 'mobile-player-wrapper'} contents`}>
+        <PlayerBar 
+          playlist={playlist}
+          currentBvid={currentBvid}
+          onPlayTrack={setCurrentBvid}
+          onReorder={handleReorder}
+          onRemove={handleRemove}
+          onClear={handleClearPlaylist}
+          favorites={favorites}
+          isFavorite={favorites.some(f => f.bvid === currentBvid)}
+          onToggleFavorite={handleToggleFavorite}
+          userPlaylists={userPlaylists}
+          onAddToPlaylist={handleAddToUserPlaylist}
+          isMiniMode={isMiniMode}
+          onToggleMiniMode={toggleMiniMode}
+        />
+      </div>
+
+      {!isMiniMode && <BottomNav activeView={activeView} onNavigate={setActiveView} onTogglePlaylists={() => setIsMobileSidebarOpen(true)} t={t} />}
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)}>

@@ -6,11 +6,17 @@ use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 // Note: std::io::Write is no longer needed for the TCP shutdown
 
+#[cfg(desktop)]
 mod engine; 
+
+#[cfg(desktop)]
+use engine::{engine_status, engine_install, engine_login, EngineState};
+
+#[cfg(desktop)]
+use std::sync::Mutex;
+
 mod registry;
 mod sync_engine;
-use engine::{engine_status, engine_install, engine_login, EngineState};
-use std::sync::Mutex;
 
 #[cfg(windows)]
 use windows::{
@@ -132,7 +138,6 @@ unsafe fn render_native_buttons(hwnd: HWND, is_playing: bool) {
     }
 }
 
-// 👇 FIXED: Allowed unused arguments when compiling on non-windows runner platforms
 #[tauri::command]
 #[allow(unused_variables)]
 fn update_taskbar(window: Window, payload: TaskbarPayload) {
@@ -152,66 +157,55 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_http::init())
-        .plugin(tauri_plugin_opener::init())
-        
-        // 1. Manage our native Engine State
-        .manage(EngineState {
+        .plugin(tauri_plugin_opener::init());
+
+    #[cfg(desktop)]
+    {
+        builder = builder.manage(EngineState {
             is_downloading: Mutex::new(false),
             download_progress: Mutex::new(0),
             download_status: Mutex::new("idle".to_string()), 
-            download_error: Mutex::new("".to_string()),      
+            download_error: Mutex::new("".to_string()),     
             is_browser_busy: Mutex::new(false),
             has_checked_background: Mutex::new(false),
             cached_cookies: Mutex::new(None),             
-        })
+        });
+    }
         
-        // 2. Register all commands exactly once
-        .invoke_handler(tauri::generate_handler![
-            greet, 
-            update_taskbar,
-            engine_status,
-            engine_install,
-            engine_login,
-            registry::get_device_id,
-            registry::create_sync_group,
-            registry::join_sync_group,
-            registry::leave_sync_group,
-            registry::get_group_pin,
-            sync_engine::trigger_cloud_sync
-        ])
-        
-        .setup(|app| {
-            APP_HANDLE.set(app.handle().clone()).unwrap();
+    builder.invoke_handler(tauri::generate_handler![
+        greet, 
+        update_taskbar,
+        #[cfg(desktop)] engine_status,
+        #[cfg(desktop)] engine_install,
+        #[cfg(desktop)] engine_login,
+        registry::get_device_id,
+        registry::create_sync_group,
+        registry::join_sync_group,
+        registry::leave_sync_group,
+        registry::get_group_pin,
+        sync_engine::trigger_cloud_sync
+    ])
+    .setup(|app| {
+        APP_HANDLE.set(app.handle().clone()).unwrap();
 
-            #[cfg(windows)]
-            {
-                if let Some(window) = app.get_webview_window("main") {
-                    let hwnd = HWND(window.hwnd().unwrap().0 as _);
-                    
-                    unsafe {
-                        let _ = SetWindowSubclass(hwnd, Some(taskbar_subclass_proc), 0, 0);
-                    }
-                    
-                    std::thread::spawn(move || {
-                        std::thread::sleep(std::time::Duration::from_millis(150));
-                        unsafe {
-                            render_native_buttons(hwnd, false);
-                        }
-                    });
-                }
+        #[cfg(windows)]
+        {
+            if let Some(window) = app.get_webview_window("main") {
+                let hwnd = HWND(window.hwnd().unwrap().0 as _);
+                unsafe { let _ = SetWindowSubclass(hwnd, Some(taskbar_subclass_proc), 0, 0); }
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(150));
+                    unsafe { render_native_buttons(hwnd, false); }
+                });
             }
-            
-            // Sidecar spawning code has been entirely deleted!
-
-            Ok(())
-        })
-        .build(tauri::generate_context!())
-        .expect("error while building tauri application")
-        
-        // TCP Shutdown hook has been entirely deleted!
-        .run(|_app_handle, _event| {});
+        }
+        Ok(())
+    })
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application")
+    .run(|_app_handle, _event| {});
 }

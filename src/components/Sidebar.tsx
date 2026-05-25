@@ -30,7 +30,7 @@ export default function Sidebar({ activeView, activePlaylistId, onNavigate, play
   return (
     <aside className={`relative h-full flex flex-col transition-all duration-300 ease-in-out shrink-0 bg-[#f4f5f9] dark:bg-gray-900 border-r-0 dark:border-r border-gray-800 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       
-      <button onClick={() => setIsCollapsed(!isCollapsed)} className={`absolute -right-3 top-8 w-6 h-6 rounded-full flex items-center justify-center shadow transition-colors z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700`}>
+      <button onClick={() => setIsCollapsed(!isCollapsed)} className={`hidden md:flex absolute -right-3 top-8 w-6 h-6 rounded-full items-center justify-center shadow transition-colors z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700`}>
         <svg className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
       </button>
 

@@ -21,17 +21,19 @@ export default function SettingsPage() {
     const [modalMessage, setModalMessage] = useState<string | null>(null);
 
     useEffect(() => {
+        if (localStorage.getItem('sync_device_id') === 'localhost' || localStorage.getItem('sync_device_id') === '127.0.0.1') {
+            localStorage.removeItem('sync_device_id');
+        }
+
         getLocalDeviceId().then(id => {
-            if (!syncConfig.deviceId) {
-                setSyncConfigState(prev => ({ ...prev, deviceId: id }));
-            }
+            setSyncConfigState(prev => ({ ...prev, deviceId: id }));
         });
     }, []);
 
     const handleCreateGroup = async () => {
         setIsProcessing(true);
         try {
-            const { groupId, pin } = await createSyncGroup();
+            const { groupId, pin } = await createSyncGroup(syncConfig.deviceId!);
             saveSyncConfig(groupId, syncConfig.deviceId!);
             setSyncConfigState(getSyncConfig());
             setGeneratedPin(pin);
@@ -43,7 +45,7 @@ export default function SettingsPage() {
         if (!joinPin.trim()) return;
         setIsProcessing(true);
         try {
-            const groupId = await joinSyncGroup(joinPin);
+            const groupId = await joinSyncGroup(joinPin, syncConfig.deviceId!);
             saveSyncConfig(groupId, syncConfig.deviceId!);
             setSyncConfigState(getSyncConfig());
             setJoinPin('');
@@ -55,7 +57,7 @@ export default function SettingsPage() {
         if (!syncConfig.groupId) return;
         setIsProcessing(true);
         try {
-            await leaveSyncGroup(syncConfig.groupId);
+            await leaveSyncGroup(syncConfig.groupId, syncConfig.deviceId!);
             clearSyncGroup();
             setSyncConfigState(getSyncConfig());
             setGeneratedPin(''); 
@@ -223,7 +225,7 @@ export default function SettingsPage() {
                                 <div className={`flex-grow border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}></div>
                             </div>
 
-                            <div className="flex gap-4">
+                            <div className="flex flex-col md:flex-row gap-4">
                                 <input 
                                     type="text" 
                                     placeholder={t("Enter 6-digit PIN")}
@@ -232,7 +234,7 @@ export default function SettingsPage() {
                                     disabled={isProcessing}
                                     className={`flex-1 px-4 py-3 rounded-xl border font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-[#0b57d0] disabled:opacity-50 ${isDark ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-800'}`}
                                 />
-                                <button onClick={handleJoinGroup} disabled={isProcessing || !joinPin.trim()} className={`px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${isDark ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}>
+                                <button onClick={handleJoinGroup} disabled={isProcessing || !joinPin.trim()} className={`w-full md:w-auto px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${isDark ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}>
                                     {isProcessing && <Spinner />}
                                     {t('Join Group')}
                                 </button>

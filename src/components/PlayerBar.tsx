@@ -54,7 +54,7 @@ function SortableTrackItem({
         <span className="text-xs opacity-60">{item.uploader}</span>
       </div>
       
-      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity z-10 relative">
+      <div className="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 relative">
         <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onOpenPlaylistModal(item); }} className="p-1.5 text-gray-400 hover:text-[#0b57d0] hover:bg-blue-50 dark:hover:bg-[#0b57d0]/20 rounded transition-all">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
         </button>
@@ -74,6 +74,8 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
   const [trackToAdd, setTrackToAdd] = useState<VideoTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isImmersiveOpen, setIsImmersiveOpen] = useState(false);
+
+  const [isMobileLyricsVisible, setIsMobileLyricsVisible] = useState(false);
   
   // Audio Engine States
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -81,6 +83,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(() => {
+    if (/android|iphone|ipad|ipod/i.test(navigator.userAgent)) return 1.0;
     const saved = localStorage.getItem('player_volume');
     return saved !== null ? Number(saved) : 0.3;
   });
@@ -324,8 +327,20 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
 
   useEffect(() => {
     if (autoScroll && activeLyricIndex !== -1 && lyricsContainerRef.current) {
-      const el = lyricsContainerRef.current.querySelector(`[data-index="${activeLyricIndex}"]`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const container = lyricsContainerRef.current;
+      const el = container.querySelector(`[data-index="${activeLyricIndex}"]`) as HTMLElement;
+      
+      if (el) {
+        // Calculate where the element should sit relative to the container's top edge
+        const containerCenter = container.clientHeight / 2;
+        const elCenter = el.offsetTop + (el.clientHeight / 2);
+        const targetScrollTop = elCenter - containerCenter;
+
+        container.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
+      }
     }
   }, [activeLyricIndex, autoScroll]);
 
@@ -605,8 +620,8 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      const visibleBins = Math.floor(bufferLength * 0.75); 
-      const barWidth = (canvas.width / visibleBins) - 2;
+      const visibleBins = Math.floor(bufferLength * 0.75);
+      const barWidth = Math.max((canvas.width / visibleBins) - 2, 1);
       let x = 0;
 
       for (let i = 0; i < visibleBins; i++) {
@@ -615,7 +630,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
         
         ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + percent * 0.6})`;
         
-        const radius = Math.min(barWidth / 2, 4);
+        const radius = Math.max(Math.min(barWidth / 2, 4), 0);
         ctx.beginPath();
         ctx.roundRect(x, canvas.height - barHeight, barWidth, barHeight, [radius, radius, 0, 0]);
         ctx.fill();
@@ -876,7 +891,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
       )}
 
       <div 
-        className={`fixed top-0 right-0 w-96 md:w-[28rem] bottom-20 bg-white dark:bg-gray-900 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] z-50 flex flex-col border-l border-gray-200 dark:border-gray-800 overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${isPlaylistOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed right-0 w-full sm:w-96 md:w-[28rem] top-[15vh] md:top-0 bottom-[70px] md:bottom-20 bg-white dark:bg-gray-900 shadow-[0_-10px_30px_rgba(0,0,0,0.15)] md:shadow-[-10px_0_30px_rgba(0,0,0,0.05)] z-50 flex flex-col rounded-t-3xl md:rounded-none border-l-0 md:border-l md:border-gray-200 md:dark:border-gray-800 overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${isPlaylistOpen ? 'translate-y-0 translate-x-0' : 'translate-y-[100vh] md:translate-y-0 translate-x-0 md:translate-x-full'}`}
       >
         <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center shrink-0">
           <h3 className="font-bold text-gray-800 dark:text-gray-100">{t('Playlist')} ({playlist.length})</h3>
@@ -905,18 +920,21 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
         </div>
       </div>
 
-      <div className={`fixed inset-0 z-30 bg-[#0a0a0a] text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isImmersiveOpen ? 'translate-y-0' : 'translate-y-full'} flex flex-col pb-[86px] overflow-hidden`}>
+      <div 
+        onClick={() => setIsMobileLyricsVisible(false)}
+        className={`fixed inset-0 z-30 bg-[#0a0a0a] text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isImmersiveOpen ? 'translate-y-0' : 'translate-y-full'} flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-[86px] overflow-hidden`}
+      >
         
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-40 blur-3xl scale-125 pointer-events-none transition-all duration-700"
           style={{ backgroundImage: track.cover ? `url(${track.cover.startsWith('//') ? `https:${track.cover}` : track.cover})` : 'none' }}
         />
         
-        <button onClick={() => setIsImmersiveOpen(false)} className="absolute top-8 left-8 p-3 hover:bg-white/10 rounded-full transition-colors z-50">
+        <button onClick={(e) => { e.stopPropagation(); setIsImmersiveOpen(false); setIsMobileLyricsVisible(false); }} className="absolute top-[calc(4.5rem+env(safe-area-inset-top))] md:top-8 left-4 md:left-8 p-3 hover:bg-white/10 rounded-full transition-colors z-50">
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
         </button>
 
-        <div className="absolute bottom-[100px] right-8 flex flex-col items-end gap-2 z-50">
+        <div className={`absolute bottom-[100px] right-8 flex-col items-end gap-2 z-50 ${isMobileLyricsVisible ? 'flex' : 'hidden md:flex'}`}>
           
           {isSubtitleMenuOpen && (
             <div 
@@ -1008,9 +1026,20 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
           </button>
         </div>
         
-        <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center justify-center p-8 md:p-16 gap-10 md:gap-20 w-full max-w-6xl mx-auto">
-          <div className="w-full md:w-1/2 flex justify-center md:justify-end">
-            <div className="w-64 h-64 md:w-96 md:h-96 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative">
+        <div 
+          className="relative z-10 flex-1 flex flex-col md:flex-row items-center justify-center p-4 pt-[15vh] md:p-16 gap-4 md:gap-20 w-full max-w-6xl mx-auto cursor-pointer md:cursor-default"
+          onClick={(e) => { 
+            if (!isMobileLyricsVisible) { e.stopPropagation(); setIsMobileLyricsVisible(true); } 
+          }}
+        >
+          <style>{`
+            .mobile-fade { animation: mobileFadeIn 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+            @keyframes mobileFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+          `}</style>
+          <div 
+            className={`w-full md:w-1/2 justify-center md:justify-end mt-8 md:mt-0 ${isMobileLyricsVisible ? 'hidden md:flex' : 'flex mobile-fade'}`}
+          >
+            <div className="w-full max-w-[70vw] aspect-square md:aspect-auto md:w-96 md:h-96 md:max-w-none rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative">
                <img src={track.cover.startsWith('//') ? `https:${track.cover}` : track.cover} alt="cover" className="w-full h-full object-cover" />
                {isPlaying && (
                  <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center px-6 pb-4">
@@ -1019,9 +1048,9 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
                )}
             </div>
           </div>
-          <div className="w-full md:w-1/2 relative h-[70vh] md:h-[80vh] flex flex-col items-center md:items-start text-center md:text-left overflow-hidden">
+          <div className={`w-full md:w-1/2 relative flex flex-col items-center md:items-start text-center md:text-left overflow-hidden ${isMobileLyricsVisible ? 'flex-1 md:flex-none md:h-[80vh]' : 'shrink-0 md:shrink md:h-[80vh]'}`}>
             
-            <div className="relative z-20 w-full shrink-0 pt-20 md:pt-28 pb-8 pointer-events-none">
+            <div className={`relative z-20 w-full shrink-0 pb-8 pointer-events-none ${isMobileLyricsVisible ? 'hidden md:block md:pt-28' : 'block pt-4 md:pt-28 mobile-fade'}`} onClick={(e) => e.stopPropagation()}>
               <h2 className="text-3xl md:text-4xl font-bold mb-3 px-4 md:px-0 w-full line-clamp-2 leading-tight pointer-events-auto">{track.title}</h2>
               <div className="flex items-center justify-center md:justify-start gap-4 px-4 md:px-0 pointer-events-auto">
                 <p className="text-gray-400 text-xl">{track.uploader}</p>
@@ -1031,8 +1060,9 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
             <div 
               ref={lyricsContainerRef} 
               onWheel={handleLyricsScroll} onTouchMove={handleLyricsScroll} 
-              className="absolute inset-0 w-full overflow-y-auto space-y-8 text-gray-400 font-medium opacity-80 px-4 md:px-0" 
-              style={{ 
+              onClick={(e) => { e.stopPropagation(); setIsMobileLyricsVisible(false); }}
+              className={`absolute inset-0 w-full overflow-y-auto space-y-8 text-gray-400 font-medium px-4 md:px-0 transition-opacity duration-200 block ${isMobileLyricsVisible ? 'opacity-80 pointer-events-auto' : 'opacity-0 pointer-events-none md:opacity-80 md:pointer-events-auto'}`}
+              style={{
                 scrollbarWidth: 'none', 
                 msOverflowStyle: 'none',
                 maskImage: 'linear-gradient(to bottom, transparent 0%, transparent 30%, black 45%, black 65%, transparent 85%)',
@@ -1041,7 +1071,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
             >
               <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
               
-              <div className="h-[40vh] shrink-0 pointer-events-none"></div>
+              <div className="h-[50vh] md:h-[40vh] shrink-0 pointer-events-none"></div>
               
               {displayLyrics.length > 0 ? (
                 displayLyrics.map((line: any, index) => {
@@ -1050,7 +1080,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
                     <div 
                       key={index} 
                       data-index={index} 
-                      onClick={() => { setCurrentTime(line.from); if (audioRef.current) audioRef.current.currentTime = line.from; setAutoScroll(true); }} 
+                      onClick={(e) => { e.stopPropagation(); setCurrentTime(line.from); if (audioRef.current) audioRef.current.currentTime = line.from; setAutoScroll(true); }}
                       className={`cursor-pointer transition-all duration-300 flex flex-col items-center md:items-start ${isActive ? 'opacity-100' : 'opacity-60 hover:opacity-80'}`}
                     >
                       <p className={`font-bold transition-all duration-300 ${isActive ? 'text-white text-2xl' : 'text-gray-400 text-lg'}`}>
@@ -1097,7 +1127,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
                 <p className="text-lg opacity-60 flex items-center justify-center md:justify-start h-20">♪ (Instrumental / No lyrics available) ♪</p>
               )}
               
-              <div className="h-[40vh] shrink-0 pointer-events-none"></div>
+              <div className="h-[50vh] md:h-[40vh] shrink-0 pointer-events-none"></div>
             </div>
           </div>
         </div>
@@ -1117,33 +1147,35 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
           <input type="range" min={0} max={duration || 100} value={currentTime} onChange={handleScrub} className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10" />
         </div>
 
-        <div className="flex items-center justify-between px-6 py-3 h-20">
-          <div className="flex items-center gap-4 w-1/3 min-w-[250px]">
-            <div className="relative w-14 h-14 rounded-md overflow-hidden cursor-pointer group shrink-0 shadow-sm" onClick={() => setIsImmersiveOpen(true)}>
+        <div className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 h-16 md:h-20">
+          
+          {/* LEFT COLUMN: Cover & Title */}
+          <div className="flex items-center gap-2 md:gap-4 flex-1 md:flex-none md:w-1/3 md:min-w-[250px] min-w-0">
+            <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-md overflow-hidden cursor-pointer group shrink-0 shadow-sm" onClick={() => setIsImmersiveOpen(true)}>
               <img src={track.cover.startsWith('//') ? `https:${track.cover}` : track.cover} alt="cover" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
               </div>
             </div>
-            <div className="flex flex-col overflow-hidden">
+            <div className="flex flex-col overflow-hidden mr-1 md:mr-0">
               <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate hover:underline cursor-pointer">{track.title}</span>
               <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{track.uploader}</span>
             </div>
 
-            <div className="flex items-center shrink-0 ml-1">
-              <button onClick={() => setTrackToAdd(track!)} className="p-2 text-gray-400 hover:text-[#0b57d0] hover:bg-blue-50 dark:hover:bg-[#0b57d0]/20 rounded-full transition-colors">
+            <div className="flex items-center shrink-0">
+              <button onClick={() => setTrackToAdd(track!)} className="p-1 md:p-2 text-gray-400 hover:text-[#0b57d0] hover:bg-blue-50 dark:hover:bg-[#0b57d0]/20 rounded-full transition-colors">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
               </button>
-              
-              <button onClick={() => onToggleFavorite()} className="p-2 ml-1 hover:bg-red-50 dark:hover:bg-red-500/20 rounded-full transition-colors shrink-0">
+              <button onClick={() => onToggleFavorite()} className="p-1 md:p-2 ml-0.5 md:ml-1 hover:bg-red-50 dark:hover:bg-red-500/20 rounded-full transition-colors shrink-0">
                 <svg className={`w-5 h-5 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-400 hover:text-red-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
               </button>
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center w-1/3">
-            <div className="flex items-center gap-6 text-gray-800 dark:text-gray-200">
-              <button onClick={() => setLoopMode(prev => prev === 'sequence' ? 'single' : prev === 'single' ? 'random' : 'sequence')} className={`transition-colors ${loopMode !== 'sequence' ? 'text-[#0b57d0] dark:text-[#699bf7]' : 'hover:text-[#0b57d0] dark:hover:text-[#699bf7]'}`}>
+          {/* CENTER COLUMN: Controls */}
+          <div className="flex flex-col items-center justify-center shrink-0 px-2 md:px-0 md:w-1/3">
+            <div className="flex items-center gap-2 md:gap-6 text-gray-800 dark:text-gray-200">
+              <button onClick={() => setLoopMode(prev => prev === 'sequence' ? 'single' : prev === 'single' ? 'random' : 'sequence')} className={`hidden sm:block transition-colors ${loopMode !== 'sequence' ? 'text-[#0b57d0] dark:text-[#699bf7]' : 'hover:text-[#0b57d0] dark:hover:text-[#699bf7]'}`}>
                 {loopMode === 'single' ? (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /><text x="12" y="15" fontSize="8" textAnchor="middle" fill="currentColor" strokeWidth="1">1</text></svg>
                 ) : loopMode === 'random' ? (
@@ -1155,13 +1187,13 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
 
               <button onClick={handlePrev} className="hover:text-[#0b57d0] dark:hover:text-[#699bf7] transition-colors"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg></button>
               
-              <button onClick={() => setIsPlaying(!isPlaying)} disabled={isLoadingAudio} className={`w-12 h-12 flex items-center justify-center rounded-full transition-colors ${isLoadingAudio ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600' : 'bg-[#d3e3fd] dark:bg-[#0b57d0]/20 hover:bg-[#b4cffb] dark:hover:bg-[#0b57d0]/40 text-[#041e49] dark:text-[#699bf7]'}`}>
+              <button onClick={() => setIsPlaying(!isPlaying)} disabled={isLoadingAudio} className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full transition-colors ${isLoadingAudio ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600' : 'bg-[#d3e3fd] dark:bg-[#0b57d0]/20 hover:bg-[#b4cffb] dark:hover:bg-[#0b57d0]/40 text-[#041e49] dark:text-[#699bf7]'}`}>
                 {isLoadingAudio ? (
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 ) : isPlaying ? (
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                 ) : (
-                  <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg className="w-5 h-5 md:w-6 md:h-6 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 )}
               </button>
 
@@ -1173,25 +1205,23 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 w-1/3 min-w-[200px] relative">
-          {/* --- NEW: Invisible overlay to close Sound Mode --- */}
+          {/* RIGHT COLUMN: EQ & Volume */}
+          <div className="flex items-center justify-end gap-2 md:gap-3 shrink-0 md:w-1/3 md:min-w-[200px] relative">
+            
             {isSoundModeOpen && (
               <div className="fixed inset-0 z-40" onClick={() => setIsSoundModeOpen(false)} />
             )}
 
-            {/* --- NEW: Sound Mode Toggle Button --- */}
             <button 
               onClick={() => setIsSoundModeOpen(!isSoundModeOpen)} 
-              className={`p-2 rounded-full transition-colors z-50 ${isSoundModeOpen || soundPos.x !== 0 || soundPos.y !== 0 ? 'text-[#0b57d0] bg-blue-50 dark:bg-[#0b57d0]/20' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+              className={`p-1 md:p-2 rounded-full transition-colors z-50 ${isSoundModeOpen || soundPos.x !== 0 || soundPos.y !== 0 ? 'text-[#0b57d0] bg-blue-50 dark:bg-[#0b57d0]/20' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
             </button>
 
-            {/* --- NEW: The B&O Beosonic Circular UI --- */}
             {isSoundModeOpen && (
               <div className="absolute bottom-16 right-0 mb-4 w-72 h-72 bg-white dark:bg-[#111111] rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-gray-100 dark:border-gray-800 z-50 overflow-hidden select-none touch-none transform transition-transform animate-fadeIn">
                 
-                {/* Dynamic Radial Glow Background */}
                 <div 
                   className="absolute inset-0 opacity-30 dark:opacity-40 pointer-events-none"
                   style={{
@@ -1199,26 +1229,21 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
                   }}
                 />
                 
-                {/* Drag Area */}
                 <div 
                   ref={soundAreaRef} 
                   onPointerDown={(e) => { isDraggingSound.current = true; updateSoundPos(e.clientX, e.clientY); }} 
                   className="absolute inset-6 rounded-full cursor-crosshair border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30"
                 >
-                  {/* Subtle Crosshairs */}
                   <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-200 dark:bg-gray-700 opacity-50 pointer-events-none" />
                   <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700 opacity-50 pointer-events-none" />
                   
-                  {/* Axis Labels */}
                   <span className="absolute top-2 left-1/2 -translate-x-1/2 text-[11px] font-bold text-gray-400 uppercase tracking-widest pointer-events-none">{t('Bright')}</span>
                   <span className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] font-bold text-gray-400 uppercase tracking-widest pointer-events-none">{t('Warm')}</span>
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400 uppercase tracking-widest pointer-events-none">{t('Relaxed')}</span>
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400 uppercase tracking-widest pointer-events-none">{t('Energetic')}</span>
 
-                  {/* Center Dot (Flat EQ) */}
                   <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 pointer-events-none" />
 
-                  {/* The Puck */}
                   <div 
                     className="absolute w-8 h-8 bg-white dark:bg-gray-200 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.2)] pointer-events-none transition-transform"
                     style={{
@@ -1228,7 +1253,6 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
                   />
                 </div>
 
-                {/* Reset Button */}
                 <button 
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); setSoundPos({ x: 0, y: 0 }); }}
@@ -1238,9 +1262,11 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
                 </button>
               </div>
             )}
-            {/* Original Volume Slider */}
-            <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
-            <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-24 h-1 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#0b57d0]" />
+            
+            <div className="hidden md:flex items-center gap-1.5 w-32 shrink-0">
+              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              <input type="range" min="0" max="1" step="0.01" value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-24 h-1 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#0b57d0]" />
+            </div>
           </div>
         </div>
       </div>

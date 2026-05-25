@@ -16,6 +16,8 @@ export default function AuthManager() {
 
     const { t } = useTranslation();
 
+    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+
     const checkStatus = async () => {
         try {
             // Direct memory call to Rust instead of localhost fetch
@@ -56,6 +58,7 @@ export default function AuthManager() {
     };
 
     useEffect(() => {
+        if (isMobile) return;
         const interval = setInterval(checkStatus, 1500);
         return () => clearInterval(interval);
     }, []);
@@ -78,7 +81,7 @@ export default function AuthManager() {
         }
     };
 
-    if (isLoggedIn || isDismissed) return null;
+    if (isMobile || isLoggedIn || isDismissed) return null;
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">

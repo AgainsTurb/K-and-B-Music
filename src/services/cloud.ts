@@ -26,26 +26,34 @@ export async function getLocalDeviceId(): Promise<string> {
   let id = localStorage.getItem('sync_device_id');
   if (!id) {
     id = await invoke<string>('get_device_id');
+    
+    const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isMobile || id === 'localhost' || id === '127.0.0.1') {
+      const randomHex = Math.random().toString(16).substring(2, 8).toUpperCase();
+      id = isMobile ? `Mobile-${randomHex}` : `Local-${randomHex}`;
+    }
+
     localStorage.setItem('sync_device_id', id);
   }
+
   return id;
 }
 
-export async function createSyncGroup(): Promise<{groupId: string, pin: string}> {
-  const [groupId, pin] = await invoke<[string, string]>('create_sync_group');
+export async function createSyncGroup(deviceId: string): Promise<{groupId: string, pin: string}> {
+  const [groupId, pin] = await invoke<[string, string]>('create_sync_group', { deviceId });
   return { groupId, pin };
 }
 
-export async function joinSyncGroup(pin: string): Promise<string> {
-  return await invoke<string>('join_sync_group', { pin });
+export async function joinSyncGroup(pin: string, deviceId: string): Promise<string> {
+  return await invoke<string>('join_sync_group', { pin, deviceId });
 }
 
 export async function triggerCloudSync(groupId: string, deviceId: string): Promise<string> {
   return await invoke<string>('trigger_cloud_sync', { groupId, deviceId });
 }
 
-export async function leaveSyncGroup(groupId: string): Promise<void> {
-  await invoke('leave_sync_group', { groupId });
+export async function leaveSyncGroup(groupId: string, deviceId: string): Promise<void> {
+  await invoke('leave_sync_group', { groupId, deviceId });
 }
 
 export async function getGroupPin(groupId: string): Promise<string> {

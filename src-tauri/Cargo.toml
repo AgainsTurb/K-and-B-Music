@@ -26,10 +26,9 @@ tauri-plugin-http = { version = "2.0.0", features = ["unsafe-headers"] }
 tauri-plugin-sql = { version = "2.0.0", features = ["sqlite"] }
 tauri-plugin-shell = "2.0.0"
 tokio = { version = "1.36", features = ["full"] }
-reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "stream", "rustls-tls"] }
 futures-util = "0.3"
 zip = "0.6"
-headless_chrome = { version = "1.0.21", features = ["fetch"] }
 tar = "0.4"
 flate2 = "1.0"
 sqlx = { version = "0.8", features = ["mysql", "runtime-tokio-rustls"] }
@@ -37,6 +36,9 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 gethostname = "0.4"
 uuid = { version = "1.8", features = ["v4"] }
 rand = "0.8"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+headless_chrome = { version = "1.0.21", features = ["fetch"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.56.0", features = [
