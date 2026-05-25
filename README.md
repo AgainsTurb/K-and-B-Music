@@ -10,11 +10,11 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_|_Linux|_Android-blue?logo=github)](#)
+[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_|_Linux_|_Android_|_iOS_-blue?logo=github)](#)
 
 **K&B Music** is a modern, cross‑platform music player built from the ground up with Tauri v2, React, and TypeScript. Search, discover, and stream music videos directly from Bilibili, manage personalized playlists, and enjoy an immersive, word-by-word synced rolling lyric experience.
 
-*Note: The ultimate goal is full cross-platform support (Windows, macOS, Linux, Android, iOS). The core desktop engine is currently stable across Windows, macOS, Linux, Android.*
+*Note: The ultimate goal is full cross-platform support (Windows, macOS, Linux, Android, iOS). The core desktop engine is currently stable across Windows, macOS, Linux, Android and iOS (We are still working on the Apple Developer certificate for iOS build).*
 
 ---
 
@@ -74,16 +74,40 @@ For safety concerns, the open-source codebase does not include the official data
 ### Running the App
 To start the Vite development server and the Tauri Rust backend simultaneously:
 
+For Windows/Macos/Linux:
 ```bash
 npm run tauri dev
 ```
 
+For Android:
+```bash
+npx tauri android dev
+```
+
+For iOS:
+```bash
+npx tauri ios dev
+```
+
+
 ### Building for Production
 Because K&B Music relies entirely on a native Rust backend, building the standalone installer requires just a single command:
 
+For Windows/Macos/Linux:
 ```bash
 npm run tauri build
 ```
+
+For Android:
+```bash
+npx tauri android build --apk
+```
+
+For iOS:
+```bash
+npx tauri ios build
+```
+
 *(Note: If you fork this repo, the included GitHub Actions workflow will handle this automatically upon pushing a version tag!)*
 
 ---
@@ -143,11 +167,11 @@ This project is licensed under the **GPL-3.0 License**. See the `LICENSE` file f
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_|_Linux|_Android-blue?logo=github)](#)
+[![Platform](https://img.shields.io/badge/Platform-Windows_|_macOS_|_Linux_|_Android_|_iOS_-blue?logo=github)](#)
 
 **K&B Music** 是一款基于 Tauri v2、React 和 TypeScript 从零构建的现代跨平台音乐播放器。直接从 Bilibili 搜索、发现和播放音乐视频，管理个人播放列表，并享受沉浸式的逐字同步滚动歌词体验。
 
-*注意：我们的最终目标是实现全平台支持（Windows, macOS, Linux, Android, iOS）。目前，核心桌面引擎已在 Windows，macOS，Linux和Android 上稳定运行。*
+*注意：我们的最终目标是实现全平台支持（Windows, macOS, Linux, Android, iOS）。目前，核心桌面引擎已在 Windows，macOS，Linux，Android 和 iOS（我们仍在处理 iOS版本苹果开发者账号认证问题）上稳定运行。*
 
 ---
 
@@ -207,16 +231,39 @@ npm install
 ### 运行应用
 同时启动 Vite 开发服务器和 Tauri Rust 后端：
 
+对于 Windows/Macos/Linux:
 ```bash
 npm run tauri dev
+```
+
+对于 Android:
+```bash
+npx tauri android dev
+```
+
+对于 iOS:
+```bash
+npx tauri ios dev
 ```
 
 ### 构建生产版本
 由于 K&B Music 完全依赖原生 Rust 后端，构建独立的安装程序只需要一条命令：
 
+对于 Windows/Macos/Linux:
 ```bash
 npm run tauri build
 ```
+
+对于 Android:
+```bash
+npx tauri android build --apk
+```
+
+对于 iOS:
+```bash
+npx tauri ios build
+```
+
 *(注意：如果您 fork 了此仓库，包含的 GitHub Actions 工作流会在您推送版本标签时自动处理此操作！)*
 
 ---
