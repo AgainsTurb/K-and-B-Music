@@ -23,14 +23,16 @@ export const BILI_HEADERS: Record<string, string> = {
 export const BILI_AUTH_HEADERS: Record<string, string> = { ...BILI_HEADERS };
 
 export function updateBilibiliCookies(cookieObj: Record<string, string>) {
-  if (!cookieObj || Object.keys(cookieObj).length === 0) return;
-  const cookieString = Object.entries(cookieObj)
-    .map(([key, value]) => `${key}=${value}`)
-    .join('; ');
+  // if (!cookieObj || Object.keys(cookieObj).length === 0) return;
+  // const cookieString = Object.entries(cookieObj)
+  //   .map(([key, value]) => `${key}=${value}`)
+  //   .join('; ');
   
-  BILI_AUTH_HEADERS["Cookie"] = cookieString;
-  BILI_HEADERS["Cookie"] = cookieString;
-  console.log("✅ Bilibili cookies auto-updated in memory!");
+  // BILI_AUTH_HEADERS["Cookie"] = cookieString;
+  // BILI_HEADERS["Cookie"] = cookieString;
+  // console.log("✅ Bilibili cookies auto-updated in memory!");
+  console.log("⚠️ Bilibili cookies temporarily DISABLED for testing!");
+  return;
 }
 let cachedImgKey = '';
 let cachedSubKey = '';
@@ -255,16 +257,10 @@ export async function getTrackSubtitles(bvid: string, aid: number): Promise<Subt
     const cid = await getVideoCid(bvid);
     if (!cid) return [];
 
-    const { imgKey, subKey } = await getWbiKeys();
-    
-    // Using the v2 player API just like your Python script
-    const params = { aid, cid, isGaiaAvoided: "false", web_location: "1315873" };
-    const signedParams = wbiSign(params, imgKey, subKey);
-    
-    const queryString = Object.entries(signedParams).map(([k, v]) => `${k}=${v}`).join('&');
-    const url = `https://api.bilibili.com/x/player/wbi/v2?${queryString}`;
+    const url = `https://api.bilibili.com/x/v2/dm/view?type=1&aid=${aid}&oid=${cid}`;
 
-    const resp = await fetch(url, { method: 'GET', headers: BILI_HEADERS });
+    // We do NOT send BILI_HEADERS here, ensuring it acts as a clean, cookie-free request
+    const resp = await fetch(url, { method: 'GET' });
     const data = await resp.json();
 
     return data.data?.subtitle?.subtitles || [];
@@ -277,7 +273,9 @@ export async function getTrackSubtitles(bvid: string, aid: number): Promise<Subt
 // 2. Fetch the actual JSON lyric payload
 export async function fetchLyricData(subtitleUrl: string): Promise<LyricLine[]> {
   try {
-    const url = subtitleUrl.startsWith('//') ? `https:${subtitleUrl}` : subtitleUrl;
+    let url = subtitleUrl.startsWith('//') ? `https:${subtitleUrl}` : subtitleUrl;
+    url = url.replace('http://', 'https://'); 
+    
     // We use a naked fetch here because Bilibili's subtitle CDN doesn't require strict headers
     const resp = await fetch(url, { method: 'GET' });
     const data = await resp.json();

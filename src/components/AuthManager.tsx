@@ -198,7 +198,7 @@ export default function AuthManager() {
                         )}
                         
                         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-xl mt-2 w-full text-left">
-                            <strong>{t('Note:')}</strong> {t('You can close this window to skip setup and play music normally. However,')} <span className="font-bold">{t('AI Translated Subtitles')}</span> {t('and the')} <span className="font-bold">{t('"For You" recommendations')}</span> {t('will be disabled.')}
+                            <strong>{t('Note:')}</strong> {t('You can close this window to skip setup and play music normally. However,')} <span className="font-bold">{t('AI Translated Subtitles')}</span> {t('will be disabled.')}
                         </p>
                     </>
                 ) : (
@@ -216,7 +216,7 @@ export default function AuthManager() {
                             {t('Open Browser to Log In')}
                         </button>
                         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-xl w-full text-left">
-                            <strong>{t('Note:')}</strong> {t('You can close this window to skip login and play music normally. However,')} <span className="font-bold">{t('AI Translated Subtitles')}</span> {t('and the')} <span className="font-bold">{t('"For You" recommendations')}</span> {t('will be disabled.')}
+                            <strong>{t('Note:')}</strong> {t('You can close this window to skip login and play music normally. However,')} <span className="font-bold">{t('AI Translated Subtitles')}</span> {t('will be disabled.')}
                         </p>
                     </>
                 )}

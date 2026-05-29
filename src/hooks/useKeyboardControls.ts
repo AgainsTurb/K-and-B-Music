@@ -5,6 +5,7 @@ interface KeyboardActions {
   onTogglePlay?: () => void;
   onNext?: () => void;
   onPrev?: () => void;
+  onToggleTheme?: () => void;
   // You can easily add onVolumeUp, onMute, etc., here later!
 }
 
@@ -22,6 +23,11 @@ export function useKeyboardControls(actions: KeyboardActions) {
         case 'Space':
           e.preventDefault(); // Stop the page from scrolling down
           if (actions.onTogglePlay) actions.onTogglePlay();
+          break;
+
+        case 'KeyD':
+          e.preventDefault();
+          if (actions.onToggleTheme) actions.onToggleTheme();
           break;
           
         // Future-proofing: We will uncomment these when you are ready!

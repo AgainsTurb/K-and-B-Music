@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { VideoTrack } from '../types';
 // CHANGED: Removed getTrackSubtitles, fetchLyricData, and SubtitleTrack imports
-import { getPureAudioStream, LyricLine } from '../services/bilibili';
+import { getPureAudioStream, LyricLine, getTrackSubtitles, fetchLyricData } from '../services/bilibili';
 import { UserPlaylist, addPlayTime } from '../services/db';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -17,6 +17,7 @@ import { fetchNeteaseProLyrics } from '../services/netease_lyric';
 import { fetchTencentProLyrics } from '../services/tencent_lyric';
 import { fetchKugouProLyrics } from '../services/kugou_lyric';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../hooks/useTheme';
 
 interface PlayerBarProps {
   playlist: VideoTrack[];
@@ -71,6 +72,7 @@ function SortableTrackItem({
 
 // --- MAIN COMPONENT ---
 export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorder, onRemove, onClear, favorites, isFavorite, onToggleFavorite, userPlaylists, onAddToPlaylist, isMiniMode, onToggleMiniMode }: PlayerBarProps) {
+  const { setTheme, isDark } = useTheme();
   const [trackToAdd, setTrackToAdd] = useState<VideoTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isImmersiveOpen, setIsImmersiveOpen] = useState(false);
@@ -113,8 +115,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollTimeoutRef = useRef<number | null>(null);
 
-  // CHANGED: Defaulted strictly to netease, removed Bilibili
-  const [subtitleSource, setSubtitleSource] = useState<'netease_pro' | 'tencent_pro' | 'kugou_pro' | 'netease' | 'tencent'>('netease_pro');
+  const [subtitleSource, setSubtitleSource] = useState<'netease_pro' | 'tencent_pro' | 'kugou_pro' | 'netease' | 'tencent' | 'bilibili'>('netease_pro');
   const [isSubtitleMenuOpen, setIsSubtitleMenuOpen] = useState(false);
   const [isLegacyExpanded, setIsLegacyExpanded] = useState(false);
 
@@ -133,6 +134,9 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
   const [isFetchingNetease, setIsFetchingNetease] = useState(false);
   const [tencentLyrics, setTencentLyrics] = useState<any[]>([]);
   const [isFetchingTencent, setIsFetchingTencent] = useState(false);
+
+  const [bilibiliLyrics, setBilibiliLyrics] = useState<any[]>([]);
+  const [isFetchingBilibili, setIsFetchingBilibili] = useState(false);
 
   // Playlist & Cycle States
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
@@ -252,12 +256,14 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
       setKugouProLyrics([]);
       setNeteaseLyrics([]);
       setTencentLyrics([]);
+      setBilibiliLyrics([]);
       
       setIsFetchingNeteasePro(false);
       setIsFetchingTencentPro(false);
       setIsFetchingKugouPro(false);
       setIsFetchingNetease(false);
       setIsFetchingTencent(false);
+      setIsFetchingBilibili(false);
 
       setSubtitleSource('netease_pro');  
       setLyricOffset(0);
@@ -306,7 +312,26 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
     }
   }, [subtitleSource, track, tencentLyrics.length]);
 
-  const displayLyrics = subtitleSource === 'kugou_pro' ? (kugouProLyrics || []) :
+  useEffect(() => {
+    if (subtitleSource === 'bilibili' && track && bilibiliLyrics.length === 0 && !isFetchingBilibili) {
+      setIsFetchingBilibili(true);
+      getTrackSubtitles(track.bvid, track.aid).then(subs => {
+        if (subs.length > 0) {
+          // Prefer English/AI-English if available, otherwise take the first subtitle
+          const targetSub = subs.find(s => s.lan.includes('en')) || subs[0];
+          fetchLyricData(targetSub.subtitle_url).then(lrc => {
+            setBilibiliLyrics(lrc);
+            setIsFetchingBilibili(false);
+          });
+        } else {
+          setIsFetchingBilibili(false);
+        }
+      });
+    }
+  }, [subtitleSource, track, bilibiliLyrics.length]);
+
+  const displayLyrics = subtitleSource === 'bilibili' ? (bilibiliLyrics || []) :
+                        subtitleSource === 'kugou_pro' ? (kugouProLyrics || []) :
                         subtitleSource === 'tencent_pro' ? (tencentProLyrics || []) :
                         subtitleSource === 'tencent' ? (tencentLyrics || []) : 
                         subtitleSource === 'netease' ? (neteaseLyrics || []) : 
@@ -462,6 +487,7 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
 
   useKeyboardControls({
     onTogglePlay: () => setIsPlaying(prev => !prev),
+    onToggleTheme: () => setTheme(isDark ? 'light' : 'dark'),
   });
 
   useEffect(() => {
@@ -1012,6 +1038,14 @@ export default function PlayerBar({ playlist, currentBvid, onPlayTrack, onReorde
                   >
                     <span>{t('Tencent')}</span>
                     {isFetchingTencent && <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                  </button>
+
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSubtitleSource('bilibili'); setIsSubtitleMenuOpen(false); setIsLegacyExpanded(false); }}
+                    className={`text-sm px-2 py-1.5 rounded-lg text-left transition-colors flex items-center justify-between ${subtitleSource === 'bilibili' ? 'bg-[#0b57d0] text-white font-medium' : 'text-gray-300 hover:text-white hover:bg-white/10'}`}
+                  >
+                    <span>{t('Bilibili')}</span>
+                    {isFetchingBilibili && <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
                   </button>
                 </div>
               )}

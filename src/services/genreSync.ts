@@ -6,14 +6,30 @@ const NETEASE_KEY = "x5qiTqDwvzyy7amfUB4";
 let cachedSpotifyToken = "";
 let tokenExpireTime = 0;
 
-let chosicCookieString = "pll_language=en; _gid=GA1.2.63480009.1779166816; fsuid=02863837-af3a-4bb9-8af8-fad75d52ebce; r_34874064=1779166845%7C66298cfa2dca325e%7Cbd76d1e36663d0e14116721d4417eb55cb79bc7caacb8ba9c6304aad4efc4ff4; _gat_gtag_UA_132567108_1=1; _ga_XPLVMMQKKB=GS2.1.s1779166815$o1$g1$t1779166944$j60$l0$h0; _ga=GA1.1.1265641420.1779166816";
+async function generateChosicCookies(): Promise<string> {
+  const ts = Date.now();
+  const tsSec = Math.floor(ts / 1000);
+  const fsuid = crypto.randomUUID();
+  const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+  
+  const ga = `GA1.1.${randInt(100000000, 999999999)}.${tsSec - randInt(100000, 900000)}`;
+  const gid = `GA1.2.${randInt(100000000, 999999999)}.${tsSec}`;
+  const ga_x = `GS2.1.s${tsSec}$o${randInt(1,5)}$g1$t${tsSec}$j${randInt(10,80)}$l0$h0`;
+  
+  // MD5 of a random UUID is just 32 random hex characters, easily mocked:
+  const md5Mock = Array.from({length: 32}, () => Math.floor(Math.random()*16).toString(16)).join('');
+  
+  // Native Web Crypto API for the SHA-256 timestamp hash
+  const msgBuffer = new TextEncoder().encode(ts.toString());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const sha256Hex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return `pll_language=en; _ga=${ga}; _gid=${gid}; _ga_XPLVMMQKKB=${ga_x}; fsuid=${fsuid}; r_34874064=${tsSec}|${md5Mock}|${sha256Hex}`;
+}
 
 export function updateChosicCookies(cookieObj: Record<string, string>) {
-  if (!cookieObj || Object.keys(cookieObj).length === 0) return;
-  chosicCookieString = Object.entries(cookieObj)
-    .map(([key, value]) => `${key}=${value}`)
-    .join('; ');
-  console.log("✅ Chosic cookies auto-updated in memory!");
+  // Kept as a no-op dummy function so `AuthManager.tsx` doesn't break its import!
+  console.log("✅ Chosic cookies are now generated dynamically on the fly!");
 }
 
 // Respect client rate-limits by implementing an async throttle window
@@ -99,13 +115,15 @@ async function processTrackGenreLookup(track: VideoTrack): Promise<string[]> {
   const trackId = trackIdMatch[1];
 
   // Step 3: Extract Chosic profiling tags
+  const dynamicCookies = await generateChosicCookies();
+  
   const chosicHeaders = {
     "accept": "application/json, text/javascript, */*; q=0.01",
     "app": "genre_finder",
     "referer": `https://www.chosic.com/music-genre-finder/?track=${trackId}`,
     "x-requested-with": "XMLHttpRequest",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Cookie": chosicCookieString // <-- CRITICAL: Use the dynamic variable here!
+    "Cookie": dynamicCookies 
   };
 
   const chosicTrackRes = await fetch(`https://www.chosic.com/api/tools/tracks/${trackId}`, { headers: chosicHeaders });

@@ -38,7 +38,7 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
 
   // Compute recommendation matches based on calculated genre metadata counts
   useEffect(() => {
-    if (subView === 'For You' && cloakBrowserStatus.isLoggedIn) {
+    if (subView === 'For You') {
       calculatePersonalizedMix();
     }
   }, [subView]); 
@@ -70,7 +70,8 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
       setGenre1Tracks(g1Results);
     } else {
       setGenre1Name('Recommended Pop');
-      g1Results = rankingVideos.slice(0, 10);
+      const fallbackRanking = rankingVideos.length > 0 ? rankingVideos : await getRankingVideos(1);
+      g1Results = fallbackRanking.slice(0, 10);
       setGenre1Tracks(g1Results);
     }
 
@@ -80,7 +81,8 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
       setGenre2Tracks(g2Results);
     } else {
       setGenre2Name('Trending Mix');
-      g2Results = latestVideos.slice(0, 10);
+      const fallbackLatest = latestVideos.length > 0 ? latestVideos : await getLatestVideos(1);
+      g2Results = fallbackLatest.slice(0, 10);
       setGenre2Tracks(g2Results);
     }
 
@@ -94,9 +96,16 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
 
   // Initial Fetch
   useEffect(() => {
-    setIsLatestLoading(true);
-    getLatestVideos(1).then(data => { setLatestVideos(data); setIsLatestLoading(false); });
-    getRankingVideos(1).then(setRankingVideos);
+    const loadInitialData = async () => {
+      setIsLatestLoading(true);
+      const latest = await getLatestVideos(1);
+      setLatestVideos(latest);
+      setIsLatestLoading(false);
+      const ranking = await getRankingVideos(1);
+      setRankingVideos(ranking);
+    };
+    
+    loadInitialData();
   }, []);
 
   // Infinite Scroll for Latest
@@ -162,17 +171,6 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
       </div>
 
       {subView === 'For You' ? (
-        !cloakBrowserStatus.isLoggedIn ? (
-          <div className="flex-1 flex flex-col items-center justify-center h-[50vh] text-center px-4 animate-fadeIn">
-            <svg className="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t('Service Not Available')}</h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-md">
-              {t('The personalized "For You" recommendation engine requires the Stealth Engine and an active session. Please restart the app and complete the setup to enable this feature.')}
-            </p>
-          </div>
-        ) : (
         <div className="flex-1 overflow-y-auto w-full space-y-6 pr-2 pb-8 animate-fadeIn" style={{ scrollbarWidth: 'none' }}>
           
           {/* SPECIAL GRIDS AREA */}
@@ -224,7 +222,6 @@ export default function RecommendPage({ onPlayTrack, favorites, onToggleFavorite
           </div>
 
         </div>
-        )
       ) : (
         // CHANGED: Added max-w-6xl, mx-auto, and w-full to prevent ultra-wide stretching
         <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-6 md:gap-8 overflow-y-auto md:overflow-hidden w-full pb-4" style={{ scrollbarWidth: 'none' }}>

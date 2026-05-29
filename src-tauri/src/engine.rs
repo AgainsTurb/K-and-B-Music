@@ -93,22 +93,9 @@ fn launch_and_get_cookies(profile_dir: &PathBuf, exe_path: &PathBuf, is_visible:
             }
         }
 
-        let _ = tab.navigate_to("https://www.chosic.com/music-genre-finder");
-        std::thread::sleep(std::time::Duration::from_secs(2));
-        if let Ok(cookies) = tab.get_cookies() {
-            all_cookies.extend(cookies);
-        }
-
     } else {
-        // 👇 FIXED: Fast, deterministic background checking
         let _ = tab.navigate_to("https://www.bilibili.com");
         let _ = tab.wait_for_element("body"); 
-        if let Ok(cookies) = tab.get_cookies() {
-            all_cookies.extend(cookies);
-        }
-
-        let _ = tab.navigate_to("https://www.chosic.com/music-genre-finder");
-        let _ = tab.wait_for_element("body");
         if let Ok(cookies) = tab.get_cookies() {
             all_cookies.extend(cookies);
         }

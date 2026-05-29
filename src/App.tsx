@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
+import { getVersion } from '@tauri-apps/api/app';
 import Sidebar from './components/Sidebar';
 import TrackCard from './components/TrackCard';
 import SearchBar from './components/SearchBar';
@@ -131,6 +132,8 @@ export default function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
 
+  const [updateInfo, setUpdateInfo] = useState<{ version: string, url: string, body: string } | null>(null);
+
   const loadUserPlaylists = async () => setUserPlaylists(await getUserPlaylists());
 
   // Refs to prevent false plays on app boot or playlist reorders
@@ -153,6 +156,35 @@ export default function App() {
       setIsMiniMode(false);
     }
   };
+
+  useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const currentVersion = await getVersion(); // e.g., '1.3.0'
+          
+        const res = await fetch('https://api.github.com/repos/AgainsTurb/K-and-B-Music/releases/latest');
+        const data = await res.json();
+        
+        if (data && data.tag_name) {
+          // GitHub tags usually have a 'v' prefix (v1.4.0), Tauri versions do not (1.4.0)
+          const latestVersion = data.tag_name.replace(/^v/, '');
+          
+          // Semantic versioning string comparison (e.g. 1.4.0 > 1.3.0)
+          if (latestVersion.localeCompare(currentVersion, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
+            setUpdateInfo({
+              version: data.tag_name,
+              url: data.html_url,
+              body: data.body
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Update check failed:", e);
+      }
+    };
+    // Add a slight 2-second delay so it doesn't interrupt the initial app render
+    setTimeout(checkUpdate, 2000);
+  }, []);
 
   // Load playlist on mount
   useEffect(() => {
@@ -334,7 +366,7 @@ export default function App() {
         </>
       )}
 
-      <AuthManager />
+      {/* <AuthManager /> */}
       
       <main className={`flex-1 flex flex-col h-full relative min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 ${isMiniMode ? 'hidden' : ''}`}>
         <SearchBar 
@@ -501,6 +533,41 @@ export default function App() {
               </button>
               <button onClick={confirmCreatePlaylist} disabled={!newPlaylistName.trim()} className="flex-1 py-3 rounded-xl bg-[#0b57d0] hover:bg-[#0842a0] text-white font-bold transition-colors disabled:opacity-50">
                 Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {updateInfo && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setUpdateInfo(null)}>
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-2xl w-full max-w-sm mx-4 border border-gray-100 dark:border-gray-800 animate-fadeIn" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('Update Available!')}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t('Version')} <span className="font-bold text-[#0b57d0] dark:text-[#699bf7]">{updateInfo.version}</span> {t('is ready.')}
+                </p>
+              </div>
+            </div>
+            
+            {/* Release Notes */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-6 max-h-32 overflow-y-auto text-xs text-gray-600 dark:text-gray-300 font-mono whitespace-pre-wrap custom-scrollbar">
+              {updateInfo.body}
+            </div>
+
+            <div className="flex gap-4">
+              <button onClick={() => setUpdateInfo(null)} className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                {t('Later')}
+              </button>
+              <button 
+                onClick={() => { open(updateInfo.url); setUpdateInfo(null); }} 
+                className="flex-1 py-3 rounded-xl bg-[#0b57d0] hover:bg-[#0842a0] text-white font-bold transition-colors"
+              >
+                {t('Download')}
               </button>
             </div>
           </div>
